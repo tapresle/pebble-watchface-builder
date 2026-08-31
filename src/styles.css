@@ -305,6 +305,26 @@ a:hover {
   min-width: 30px;
 }
 
+/*
+ * An icon button that happens to be a link. Without this the base `a` rules
+ * win on hover, since a:hover outranks .btn, and it would turn accent colored
+ * while the icon buttons beside it only change background.
+ */
+/* The icon buttons size to their text's line box; an svg has none, so the
+   heights are pinned to match rather than left 2px short. */
+.topbar .btn-icon {
+  height: 32px;
+}
+
+.topbar-link,
+.topbar-link:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+.topbar-link svg {
+  display: block;
+}
+
 .input,
 .select,
 .textarea {
