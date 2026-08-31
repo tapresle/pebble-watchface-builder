@@ -1,0 +1,28 @@
+{
+  "name": "pebble-watchface-builder",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Browser-based drag-and-drop watchface builder for the Pebble Time 2, Core 2 Duo and Pebble Round 2 that emits Pebble C SDK code for CloudPebble.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit false --pretty",
+    "check:c": "bash scripts/check-c.sh",
+    "verify": "tsc -b && bash scripts/check-text.sh && bash scripts/check-icons.sh && bash scripts/check-c.sh && vite build",
+    "check:text": "bash scripts/check-text.sh",
+    "check:icons": "bash scripts/check-icons.sh"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}

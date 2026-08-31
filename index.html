@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pebble Watchface Builder</title>
+    <meta name="description" content="Drag-and-drop watchface designer for the Pebble Time 2, Core 2 Duo and Pebble Round 2 that exports Pebble C SDK code for CloudPebble." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌚</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Montserrat:wght@300;500;700;900&family=Roboto:wght@400;700&family=Roboto+Condensed:wght@400;700&family=Noto+Serif:wght@700&family=Chakra+Petch:wght@400;500;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Set the theme before the first paint, so a light system does not see a
+      // dark flash while the bundle loads. The app takes over from here.
+      (function () {
+        try {
+          var saved = localStorage.getItem('pebble-watchface-builder/theme');
+          var theme =
+            saved === 'light' || saved === 'dark'
+              ? saved
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+          document.documentElement.dataset.theme = theme;
+        } catch (e) {
+          /* Private browsing can refuse storage; the app still themes itself. */
+        }
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
