@@ -1,5 +1,9 @@
 # Pebble Watchface Builder
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/efba93e8-cb6e-4359-8dc5-e7ca8ecc26d6/deploy-status)](https://app.netlify.com/projects/pebble-watchface-builder/deploys)
+
+Live site at [pebble-watchface-builder.netlify.app](https://pebble-watchface-builder.netlify.app/)
+
 A drag-and-drop watchface designer for the **Pebble Time 2**, the **Core 2 Duo** and the
 **Pebble Round 2** that runs in the browser and exports a ready-to-build **Pebble C SDK**
 project for CloudPebble.
