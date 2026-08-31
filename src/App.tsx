@@ -7,11 +7,20 @@ import { LayersPanel } from './components/LayersPanel';
 import { AssetsPanel } from './components/AssetsPanel';
 import { ProjectPanel } from './components/ProjectPanel';
 import { Inspector } from './components/Inspector';
-import { CoffeeButton } from './components/CoffeeButton';
 import { ExportModal } from './components/ExportModal';
 import { DevicePicker } from './components/DevicePicker';
+import { detectLayout, type Layout } from './lib/layout';
 
-type LeftTab = 'add' | 'layers' | 'assets' | 'project';
+/** The stacked layout folds Properties into the same strip as the rest. */
+type PanelTab = 'add' | 'layers' | 'assets' | 'project' | 'properties';
+
+const DESKTOP_TABS: [PanelTab, string][] = [
+  ['add', 'Add'],
+  ['layers', 'Layers'],
+  ['assets', 'Assets'],
+  ['project', 'Project'],
+];
+const MOBILE_TABS: [PanelTab, string][] = [...DESKTOP_TABS, ['properties', 'Properties']];
 
 const THEME_KEY = 'pebble-watchface-builder/theme';
 
@@ -65,6 +74,23 @@ function useTheme(): [Theme, () => void] {
   return [theme, toggle];
 }
 
+/**
+ * The layout, chosen from the viewport at load and then left alone.
+ *
+ * There is no resize listener on purpose: rotating a tablet or opening a soft
+ * keyboard must not rearrange the editor mid-edit. Nothing is persisted
+ * either, so the toggle lasts for the session and a reload asks the viewport
+ * again.
+ */
+function useLayout(): [Layout, () => void] {
+  const [layout, setLayout] = useState<Layout>(detectLayout);
+  const toggle = useCallback(
+    () => setLayout((current) => (current === 'mobile' ? 'desktop' : 'mobile')),
+    [],
+  );
+  return [layout, toggle];
+}
+
 /** Element-level keyboard shortcuts, ignored while a form field has focus. */
 function useShortcuts() {
   const store = useStore();
@@ -115,21 +141,120 @@ function useShortcuts() {
   }, [store]);
 }
 
+/** The tab strip shared by both layouts. */
+function PanelTabs({
+  tabs,
+  active,
+  onPick,
+}: {
+  tabs: [PanelTab, string][];
+  active: PanelTab;
+  onPick: (tab: PanelTab) => void;
+}) {
+  return (
+    <div className="tabs" role="tablist">
+      {tabs.map(([id, label]) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          className="tab"
+          aria-selected={active === id}
+          onClick={() => onPick(id)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PanelBody({ tab }: { tab: PanelTab }) {
+  return (
+    <>
+      {tab === 'add' && <PalettePanel />}
+      {tab === 'layers' && <LayersPanel />}
+      {tab === 'assets' && <AssetsPanel />}
+      {tab === 'project' && <ProjectPanel />}
+      {tab === 'properties' && <Inspector />}
+    </>
+  );
+}
+
+function Stage({
+  settings,
+  onSettings,
+  onSelectOnCanvas,
+}: {
+  settings: CanvasSettings;
+  onSettings: (next: CanvasSettings) => void;
+  onSelectOnCanvas?: (id: string) => void;
+}) {
+  const store = useStore();
+  return (
+    <main className="stage">
+      {store.storageWarning && (
+        <div className="warning-bar" style={{ margin: 12, marginBottom: 0 }}>
+          {store.storageWarning}
+        </div>
+      )}
+      <Canvas settings={settings} onSelectOnCanvas={onSelectOnCanvas} />
+      <StageToolbar settings={settings} onSettings={onSettings} />
+    </main>
+  );
+}
+
+const LAYOUT_ICON: Record<Layout, JSX.Element> = {
+  // Each button shows the layout it switches to, the way the theme toggle does.
+  desktop: (
+    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor"
+         strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
+      <rect x="4.5" y="1.2" width="7" height="13.6" rx="1.6" />
+      <path d="M6.9 12.6h2.2" />
+    </svg>
+  ),
+  mobile: (
+    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor"
+         strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
+      <rect x="1.2" y="2.2" width="13.6" height="9.4" rx="1.6" />
+      <path d="M8 11.6v2.6M5.4 14.2h5.2" />
+    </svg>
+  ),
+};
+
 function Workspace() {
   const store = useStore();
-  const [tab, setTab] = useState<LeftTab>('add');
+  const [layout, toggleLayout] = useLayout();
+  const [tab, setTab] = useState<PanelTab>('add');
   const [exporting, setExporting] = useState(false);
   const [theme, toggleTheme] = useTheme();
-  const [settings, setSettings] = useState<CanvasSettings>({ zoom: 2, showGrid: false, snap: 1 });
+  // The stacked layout has far less room, so it opens at 1x rather than 2x.
+  const [settings, setSettings] = useState<CanvasSettings>(() => ({
+    zoom: layout === 'mobile' ? 1 : 2,
+    showGrid: false,
+    snap: 1,
+  }));
   useShortcuts();
 
   const onSettings = useCallback((next: CanvasSettings) => setSettings(next), []);
 
+  // Properties is a tab rather than a panel in the stacked layout, so tapping
+  // an element on the watch has to bring it forward or the tap looks inert.
+  const onSelectOnCanvas = useCallback(() => {
+    if (layout === 'mobile') setTab('properties');
+  }, [layout]);
+
+  const mobile = layout === 'mobile';
+  // Properties has nowhere to go in the three-column layout, where it is a
+  // panel of its own rather than a tab.
+  const panelTab: PanelTab = !mobile && tab === 'properties' ? 'add' : tab;
+
   return (
-    <div className="app">
+    <div className={`app app-${layout}`}>
       <header className="topbar">
         <div className="brand">
-          Pebble Watchface Builder
+          {/* The full name clips on a phone, and a flex box cannot ellipsize. */}
+          {mobile ? 'Watchface Builder' : 'Pebble Watchface Builder'}
           <span className="brand-sub">
             {store.spec.name} · {store.spec.width}×{store.spec.height}
           </span>
@@ -163,6 +288,15 @@ function Workspace() {
         >
           {theme === 'dark' ? '☀' : '☾'}
         </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-icon"
+          onClick={toggleLayout}
+          title={mobile ? 'Switch to the desktop layout' : 'Switch to the mobile layout'}
+          aria-label={mobile ? 'Switch to the desktop layout' : 'Switch to the mobile layout'}
+        >
+          {LAYOUT_ICON[layout]}
+        </button>
         <a
           className="btn btn-ghost btn-icon topbar-link"
           href="https://github.com/tapresle/pebble-watchface-builder"
@@ -176,57 +310,35 @@ function Workspace() {
           </svg>
         </a>
         <button type="button" className="btn btn-primary" onClick={() => setExporting(true)}>
-          Export for CloudPebble
+          {mobile ? 'Export' : 'Export for CloudPebble'}
         </button>
       </header>
 
-      <div className="workspace">
-        <aside className="panel panel-left">
-          <div className="tabs" role="tablist">
-            {(
-              [
-                ['add', 'Add'],
-                ['layers', 'Layers'],
-                ['assets', 'Assets'],
-                ['project', 'Project'],
-              ] as [LeftTab, string][]
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                className="tab"
-                aria-selected={tab === id}
-                onClick={() => setTab(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {tab === 'add' && <PalettePanel />}
-          {tab === 'layers' && <LayersPanel />}
-          {tab === 'assets' && <AssetsPanel />}
-          {tab === 'project' && <ProjectPanel />}
-        </aside>
+      {mobile ? (
+        <div className="mobile-body">
+          <Stage settings={settings} onSettings={onSettings} onSelectOnCanvas={onSelectOnCanvas} />
+          <section className="panel mobile-panel">
+            <PanelTabs tabs={MOBILE_TABS} active={panelTab} onPick={setTab} />
+            <PanelBody tab={panelTab} />
+          </section>
+        </div>
+      ) : (
+        <div className="workspace">
+          <aside className="panel panel-left">
+            <PanelTabs tabs={DESKTOP_TABS} active={panelTab} onPick={setTab} />
+            <PanelBody tab={panelTab} />
+          </aside>
 
-        <main className="stage">
-          {store.storageWarning && (
-            <div className="warning-bar" style={{ margin: 12, marginBottom: 0 }}>
-              {store.storageWarning}
+          <Stage settings={settings} onSettings={onSettings} />
+
+          <aside className="panel panel-right">
+            <div className="tabs">
+              <span className="tab tab-static">Properties</span>
             </div>
-          )}
-          <Canvas settings={settings} />
-          <StageToolbar settings={settings} onSettings={onSettings} />
-        </main>
-
-        <aside className="panel panel-right">
-          <div className="tabs">
-            <span className="tab tab-static">Properties</span>
-          </div>
-          <Inspector />
-          <CoffeeButton />
-        </aside>
-      </div>
+            <Inspector />
+          </aside>
+        </div>
+      )}
 
       {exporting && <ExportModal onClose={() => setExporting(false)} />}
 

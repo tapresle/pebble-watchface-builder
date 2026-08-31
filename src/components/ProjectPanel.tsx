@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useStore } from '../store';
 import { ColorField, Field, NumberField, TextField, ToggleField } from './fields';
 import { downloadText, PROJECT_FILE_NAME, uuidv4 } from '../lib/utils';
+import { CoffeeButton } from './CoffeeButton';
 import { ConfirmDialog } from './ConfirmDialog';
 import { readProject } from '../store';
 import { DevicePicker } from './DevicePicker';
@@ -173,6 +174,8 @@ export function ProjectPanel() {
         Your work is saved in this browser automatically. Downloading the JSON is the way to move it
         to another machine - it includes your uploaded fonts and images.
       </p>
+
+      <CoffeeButton />
 
       {dialog === 'newProject' && (
         <DevicePicker

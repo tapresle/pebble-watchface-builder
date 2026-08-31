@@ -8,10 +8,9 @@
  * collect what it emits, and the collected markup is placed in the host. That
  * keeps their own button rather than a hand-rolled imitation of it.
  *
- * How tall the button comes out is theirs to decide, so the host measures
- * itself and publishes the height as a custom property. The panel pads its
- * scrolling content by exactly that much and nothing ends up hidden behind the
- * button; a blocked or offline script measures zero and costs no padding.
+ * It is the last thing in the Project pane's own scrolling content rather than
+ * a floating or docked bar, so it can never cover a control and nothing else
+ * has to be sized around it. A blocked or offline script leaves an empty box.
  */
 
 import { useEffect, useRef } from 'react';
@@ -87,13 +86,6 @@ export function CoffeeButton() {
     const host = hostRef.current;
     if (!host) return;
 
-    const panel = host.closest('.panel-right') as HTMLElement | null;
-    // The panel reserves room for whatever the widget renders, which is not
-    // known until it has rendered it.
-    const publishHeight = () => {
-      panel?.style.setProperty('--coffee-height', `${Math.ceil(host.offsetHeight)}px`);
-    };
-    const observer = new ResizeObserver(publishHeight);
     let cancelled = false;
 
     void loadButtonHtml().then((html) => {
@@ -101,14 +93,10 @@ export function CoffeeButton() {
       host.innerHTML = html;
       // The widget opens in a new tab without disclaiming the opener.
       host.querySelector('a')?.setAttribute('rel', 'noopener noreferrer');
-      publishHeight();
-      observer.observe(host);
     });
 
     return () => {
       cancelled = true;
-      observer.disconnect();
-      panel?.style.removeProperty('--coffee-height');
       host.replaceChildren();
     };
   }, []);

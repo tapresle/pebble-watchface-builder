@@ -51,7 +51,16 @@ export interface CanvasSettings {
   snap: number;
 }
 
-export function Canvas({ settings }: { settings: CanvasSettings }) {
+export function Canvas({
+  settings,
+  onSelectOnCanvas,
+}: {
+  settings: CanvasSettings;
+  /** Fired only when a tap on the watch picks an element, not on every
+   *  selection change - adding from the palette selects too, and that should
+   *  not drag the stacked layout away from the palette. */
+  onSelectOnCanvas?: (id: string) => void;
+}) {
   const store = useStore();
   const { project, preview, spec } = store;
   const { zoom, showGrid, snap } = settings;
@@ -103,6 +112,7 @@ export function Canvas({ settings }: { settings: CanvasSettings }) {
     const el = project.elements.find((item) => item.id === id);
     if (!el) return;
     store.select(id);
+    onSelectOnCanvas?.(id);
     if (el.locked) return;
     const origin = { x: el.x, y: el.y };
     startDrag(e, (dx, dy) => {
