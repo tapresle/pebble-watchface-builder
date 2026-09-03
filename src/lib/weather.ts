@@ -5,7 +5,7 @@
  * Pebble has no weather API of its own. A watchface gets weather by running a
  * PebbleKit JS companion on the phone, which fetches from a web service and
  * sends the numbers over AppMessage. This module is the single description of
- * that data, so the preview, the generated C and the generated JS all agree.
+ * that data, so the preview, the generated C, and the generated JS all agree.
  */
 
 /** The general conditions the icon can draw. The index is what goes on the wire. */
@@ -252,7 +252,7 @@ function bolt(left: number, top: number, width: number, height: number): IconSha
 /**
  * The icon set, drawn after Noto's weather emoji: a spiked sun, a puffy
  * four-lobe cloud with a flat base, teardrops, a filled bolt, six-pointed
- * flakes and drifting bands of mist.
+ * flakes, and drifting bands of mist.
  *
  * Everything is one color on a Pebble, so shapes that Noto separates by hue
  * are separated by position here instead. That is why the partly cloudy sun

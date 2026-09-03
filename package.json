@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Browser-based drag-and-drop watchface builder for the Pebble Time 2, Core 2 Duo, Pebble Round 2 and Pebble 2 that emits Pebble C SDK code for CloudPebble.",
+  "description": "Browser-based drag-and-drop watchface builder for the Pebble Time 2, Core 2 Duo, Pebble Round 2, and Pebble 2 that emits Pebble C SDK code for CloudPebble.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

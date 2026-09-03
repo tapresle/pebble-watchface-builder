@@ -498,7 +498,7 @@ function SetupGuide({
         <li>
           Built-in Pebble fonts are previewed with stand-ins, scaled to each font's real measured
           cap height, so text is the right size and sits in the right place. Roboto and Droid Serif
-          are the genuine article; Gothic, Bitham and LECO are commercial typefaces, so those
+          are the genuine article; Gothic, Bitham, and LECO are commercial typefaces, so those
           preview with lookalikes and their letterforms and exact text widths will differ on the
           watch. Fonts you upload yourself preview exactly.
         </li>

@@ -91,7 +91,7 @@ export function projectSlug(name: string): string {
 /**
  * The builder's own save file, inside the exported zip and on its own. The name
  * is fixed rather than derived from the project, so the README, the export
- * panel's file table and the download all name the same thing without having to
+ * panel's file table, and the download all name the same thing without having to
  * be kept in step.
  */
 export const PROJECT_FILE_NAME = 'project.json';

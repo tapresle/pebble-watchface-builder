@@ -2,7 +2,7 @@
  * Project data model for the Pebble Watchface Builder.
  *
  * Everything the user creates lives in a `WatchfaceProject`, which is a plain
- * JSON-serializable object. That keeps save/load, undo/redo and code generation
+ * JSON-serializable object. That keeps save/load, undo/redo, and code generation
  * trivial: the generator is a pure function of this document.
  */
 
@@ -195,7 +195,7 @@ export interface BatteryBarElement extends ElementBase {
   chargingColor: Hex;
   /** Inset between the border and the fill, in pixels. */
   padding: number;
-  /** Corner radius of the track, the fill and the border. */
+  /** Corner radius of the track, the fill, and the border. */
   radius: number;
 }
 

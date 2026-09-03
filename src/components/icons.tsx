@@ -146,7 +146,7 @@ export const GithubIcon = () => (
 /**
  * The "Add element" palette, one drawing per entry.
  *
- * These were emoji, which meant Apple, Google and Windows each drew a different
+ * These were emoji, which meant Apple, Google, and Windows each drew a different
  * picture, and two entries shared one glyph: the analog dial and the compass
  * were both a compass rose. Typed as a complete record of PaletteId, so adding
  * a palette entry without an icon fails the build rather than rendering a gap.

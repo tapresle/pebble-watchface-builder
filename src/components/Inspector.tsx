@@ -121,7 +121,7 @@ function FontPicker({
       />
       {coverage !== 'full' && (
         <div className="warning-bar">
-          This system font only contains digits{coverage === 'numbers+ampm' ? ', AM and PM' : ''}.
+          This system font only contains digits{coverage === 'numbers+ampm' ? ', AM, and PM' : ''}.
           Letters will not render on the watch.
         </div>
       )}
@@ -452,7 +452,7 @@ function TypeControls({ el, patch }: { el: WatchElement; patch: (p: Patch) => vo
             min={0}
             max={Math.floor(Math.min(el.w, el.h) / 2)}
             onChange={(radius) => patch({ radius: Math.round(radius) } as Patch)}
-            hint="Rounds the track, the fill and the border together. Caps at half the shorter side."
+            hint="Rounds the track, the fill, and the border together. Caps at half the shorter side."
           />
           <ColorField label="Fill" value={el.fillColor} onChange={(fillColor) => patch({ fillColor } as Patch)} />
           <ColorField

@@ -1,6 +1,6 @@
 /**
- * Application state: the project document, the selection, undo/redo history and
- * localStorage persistence.
+ * Application state: the project document, the selection, undo/redo history,
+ * and localStorage persistence.
  *
  * The document is treated as immutable - every mutation produces a new object -
  * which makes the history stack a plain array of previous documents.
