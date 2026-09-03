@@ -38,14 +38,44 @@ const TOKENS = {
 /** Exported so the device picker's preview can show the real starting colors. */
 export const tokensFor = (spec: PlatformSpec) => TOKENS[spec.colorMode];
 
+/**
+ * Unique palette entry id - several entries can map to the same element type,
+ * as Time and Date both do. Kept as a union so the icon table in icons.tsx has
+ * to cover every one of them, and so a drag payload from elsewhere can be
+ * checked rather than trusted.
+ */
+export type PaletteId =
+  | 'time'
+  | 'date'
+  | 'analog'
+  | 'text'
+  | 'batteryText'
+  | 'batteryBar'
+  | 'batteryRing'
+  | 'steps'
+  | 'heartRate'
+  | 'bluetooth'
+  | 'weather'
+  | 'compass'
+  | 'polygon'
+  | 'circle'
+  | 'line'
+  | 'image';
+
+const PALETTE_IDS = new Set<string>([
+  'time', 'date', 'analog', 'text', 'batteryText', 'batteryBar', 'batteryRing',
+  'steps', 'heartRate', 'bluetooth', 'weather', 'compass', 'polygon', 'circle',
+  'line', 'image',
+]);
+
+export const isPaletteId = (value: string): value is PaletteId => PALETTE_IDS.has(value);
+
 /** Descriptor used to build the "Add element" palette in the sidebar. */
 export interface ElementKind {
-  /** Unique palette entry id - several entries can map to the same element type. */
-  paletteId: string;
+  paletteId: PaletteId;
   type: ElementType;
   label: string;
   hint: string;
-  icon: string;
   group: 'Time & date' | 'Complications' | 'Shapes & art';
   /** Hides the entry on watches that lack the hardware to drive it. */
   requires?: (spec: PlatformSpec) => boolean;
@@ -57,22 +87,22 @@ export function elementKindsFor(spec: PlatformSpec): ElementKind[] {
 }
 
 export const ELEMENT_KINDS: ElementKind[] = [
-  { paletteId: 'time', type: 'time', label: 'Time', hint: 'Digital clock via strftime', icon: '🕘', group: 'Time & date' },
-  { paletteId: 'date', type: 'time', label: 'Date', hint: 'Any strftime date format', icon: '📅', group: 'Time & date' },
-  { paletteId: 'analog', type: 'analog', label: 'Analog dial', hint: 'Hour/minute/second hands', icon: '🧭', group: 'Time & date' },
-  { paletteId: 'text', type: 'text', label: 'Static text', hint: 'A fixed label', icon: '🔤', group: 'Time & date' },
-  { paletteId: 'batteryText', type: 'batteryText', label: 'Battery %', hint: 'Charge as text', icon: '🔋', group: 'Complications' },
-  { paletteId: 'batteryBar', type: 'batteryBar', label: 'Battery bar', hint: 'Horizontal or vertical gauge', icon: '▭', group: 'Complications' },
-  { paletteId: 'batteryRing', type: 'batteryRing', label: 'Battery ring', hint: 'Radial charge gauge', icon: '◯', group: 'Complications' },
-  { paletteId: 'steps', type: 'steps', label: 'Step count', hint: 'Pebble Health steps today', icon: '👟', group: 'Complications' },
-  { paletteId: 'heartRate', type: 'heartRate', label: 'Heart rate', hint: 'Live BPM from the sensor', icon: '❤️', group: 'Complications', requires: (spec) => spec.hasHeartRate },
-  { paletteId: 'bluetooth', type: 'bluetooth', label: 'Bluetooth', hint: 'Connection indicator', icon: '📶', group: 'Complications' },
-  { paletteId: 'weather', type: 'weather', label: 'Weather', hint: 'Temperature, rain, an icon', icon: '🌡️', group: 'Complications' },
-  { paletteId: 'compass', type: 'compass', label: 'Compass', hint: 'Heading as N, NE, E…', icon: '🧭', group: 'Complications', requires: (spec) => spec.hasCompass },
-  { paletteId: 'polygon', type: 'polygon', label: 'Polygon', hint: 'Rectangle, triangle, hexagon…', icon: '⬟', group: 'Shapes & art' },
-  { paletteId: 'circle', type: 'circle', label: 'Circle', hint: 'Filled disc or ring', icon: '⬤', group: 'Shapes & art' },
-  { paletteId: 'line', type: 'line', label: 'Line', hint: 'Straight rule or divider', icon: '➖', group: 'Shapes & art' },
-  { paletteId: 'image', type: 'image', label: 'Image', hint: 'A PNG you upload', icon: '🖼️', group: 'Shapes & art' },
+  { paletteId: 'time', type: 'time', label: 'Time', hint: 'Digital clock via strftime', group: 'Time & date' },
+  { paletteId: 'date', type: 'time', label: 'Date', hint: 'Any strftime date format', group: 'Time & date' },
+  { paletteId: 'analog', type: 'analog', label: 'Analog dial', hint: 'Hour/minute/second hands', group: 'Time & date' },
+  { paletteId: 'text', type: 'text', label: 'Static text', hint: 'A fixed label', group: 'Time & date' },
+  { paletteId: 'batteryText', type: 'batteryText', label: 'Battery %', hint: 'Charge as text', group: 'Complications' },
+  { paletteId: 'batteryBar', type: 'batteryBar', label: 'Battery bar', hint: 'Horizontal or vertical gauge', group: 'Complications' },
+  { paletteId: 'batteryRing', type: 'batteryRing', label: 'Battery ring', hint: 'Radial charge gauge', group: 'Complications' },
+  { paletteId: 'steps', type: 'steps', label: 'Step count', hint: 'Pebble Health steps today', group: 'Complications' },
+  { paletteId: 'heartRate', type: 'heartRate', label: 'Heart rate', hint: 'Live BPM from the sensor', group: 'Complications', requires: (spec) => spec.hasHeartRate },
+  { paletteId: 'bluetooth', type: 'bluetooth', label: 'Bluetooth', hint: 'Connection indicator', group: 'Complications' },
+  { paletteId: 'weather', type: 'weather', label: 'Weather', hint: 'Temperature, rain, an icon', group: 'Complications' },
+  { paletteId: 'compass', type: 'compass', label: 'Compass', hint: 'Heading as N, NE, E…', group: 'Complications', requires: (spec) => spec.hasCompass },
+  { paletteId: 'polygon', type: 'polygon', label: 'Polygon', hint: 'Rectangle, triangle, hexagon…', group: 'Shapes & art' },
+  { paletteId: 'circle', type: 'circle', label: 'Circle', hint: 'Filled disc or ring', group: 'Shapes & art' },
+  { paletteId: 'line', type: 'line', label: 'Line', hint: 'Straight rule or divider', group: 'Shapes & art' },
+  { paletteId: 'image', type: 'image', label: 'Image', hint: 'A PNG you upload', group: 'Shapes & art' },
 ];
 
 const nextName = (existing: WatchElement[], base: string): string => {
@@ -85,7 +115,7 @@ const nextName = (existing: WatchElement[], base: string): string => {
 };
 
 export interface CreateOptions {
-  paletteId: string;
+  paletteId: PaletteId;
   existing: WatchElement[];
   x: number;
   y: number;
@@ -240,7 +270,7 @@ export function createStarterProject(platform: PlatformId = 'emery'): WatchfaceP
   const elements: WatchElement[] = [];
   // Lay the starter out proportionally so it looks right on any of the screens.
   const rowY = (fraction: number) => Math.round(spec.height * fraction);
-  const addCentered = (paletteId: string, y: number) => {
+  const addCentered = (paletteId: PaletteId, y: number) => {
     const el = createElement({ paletteId, existing: elements, spec, x: 0, y });
     elements.push({ ...el, x: Math.round((spec.width - elementBox(el).w) / 2) });
   };

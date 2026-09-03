@@ -5,7 +5,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { useStore } from '../store';
-import { createElement } from '../lib/defaults';
+import { createElement, isPaletteId } from '../lib/defaults';
 import {
   elementBox,
   isResizable,
@@ -209,7 +209,9 @@ export function Canvas({
           onDrop={(e) => {
             const paletteId = e.dataTransfer.getData('application/x-pwb-element');
             setDropActive(false);
-            if (!paletteId) return;
+            // The payload is a string off the drag event, so it is checked
+            // rather than handed straight to a switch that throws on a miss.
+            if (!isPaletteId(paletteId)) return;
             e.preventDefault();
             const { x, y } = dropPoint(e);
             const element = createElement({

@@ -1,7 +1,8 @@
 /** The "add an element" palette. Items can be dragged onto the watch or clicked. */
 
 import { useStore } from '../store';
-import { createElement, elementKindsFor } from '../lib/defaults';
+import { createElement, elementKindsFor, type PaletteId } from '../lib/defaults';
+import { PALETTE_ICON } from './icons';
 
 const GROUPS = ['Time & date', 'Complications', 'Shapes & art'] as const;
 
@@ -10,7 +11,7 @@ export function PalettePanel() {
 
   const kinds = elementKindsFor(store.spec);
 
-  const add = (paletteId: string) => {
+  const add = (paletteId: PaletteId) => {
     const element = createElement({
       paletteId,
       existing: store.project.elements,
@@ -44,7 +45,7 @@ export function PalettePanel() {
                 onClick={() => add(kind.paletteId)}
               >
                 <span className="pi-top">
-                  <span aria-hidden>{kind.icon}</span>
+                  {PALETTE_ICON[kind.paletteId]}
                   {kind.label}
                 </span>
                 <span className="pi-hint">{kind.hint}</span>
