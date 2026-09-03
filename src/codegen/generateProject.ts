@@ -358,7 +358,7 @@ export function generateReadme(
   lines.push('');
   lines.push('```');
   lines.push('pebble new-project my-watchface');
-  lines.push('# copy src/c/main.c, package.json and resources/ from this bundle over the new project');
+  lines.push('# copy src/c/main.c, package.json, and resources/ from this bundle over the new project');
   lines.push('pebble build');
   lines.push(`pebble install --emulator ${spec.sdkPlatform}`);
   lines.push('```');

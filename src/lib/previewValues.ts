@@ -48,7 +48,7 @@ export function previewValues(preview: PreviewState): PreviewValues {
   const date = preview.useLiveTime
     ? new Date()
     : new Date(preview.year, preview.month, preview.day, preview.hour, preview.minute, preview.second);
-  // Only the condition, temperature and rain chance are worth a control; the
+  // Only the condition, temperature, and rain chance are worth a control; the
   // rest are derived so every field still has something plausible to draw.
   const tempTenths = Math.round(preview.weatherTempC * 10);
   return {

@@ -1,4 +1,4 @@
-/** Watchface metadata, canvas background, global options and project I/O. */
+/** Watchface metadata, canvas background, global options, and project I/O. */
 
 import { useRef, useState } from 'react';
 import { useStore } from '../store';

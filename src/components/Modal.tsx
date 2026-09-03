@@ -1,5 +1,5 @@
 /**
- * The one modal shell in the app. Handles the backdrop, Escape and initial
+ * The one modal shell in the app. Handles the backdrop, Escape, and initial
  * focus, so nothing has to reach for window.confirm().
  */
 

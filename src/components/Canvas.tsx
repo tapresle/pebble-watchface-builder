@@ -1,6 +1,6 @@
 /**
  * The watch preview and the direct-manipulation surface: drop targets for new
- * elements, dragging, resizing and the selection overlay.
+ * elements, dragging, resizing, and the selection overlay.
  */
 
 import { useCallback, useRef, useState } from 'react';
@@ -36,7 +36,7 @@ const HANDLE_POSITION: Record<Handle, { left: string; top: string; cursor: strin
 };
 
 /**
- * Every screen is a multiple of 4 in each direction - 200x228, 144x168 and
+ * Every screen is a multiple of 4 in each direction - 200x228, 144x168, and
  * 260x260 - so a 4px step divides them evenly and keeps elements on a
  * consistent rhythm.
  */

@@ -57,7 +57,7 @@ export interface TargetSize {
   height: number;
 }
 
-/** Identifies one rendition of an asset: a palette, a size and a draw mode. */
+/** Identifies one rendition of an asset: a palette, a size, and a draw mode. */
 export function variantKey(assetId: string, size: TargetSize): string {
   return `${assetId}@${size.width}x${size.height}`;
 }
@@ -76,7 +76,7 @@ const cache = new Map<string, string>();
 
 const luminance = (r: number, g: number, b: number) => 0.299 * r + 0.587 * g + 0.114 * b;
 
-/** Each channel on a color Pebble is 2 bits: 0, 85, 170 or 255. */
+/** Each channel on a color Pebble is 2 bits: 0, 85, 170, or 255. */
 const CHANNEL_STEP = 255 / 3;
 const quantizeChannel = (v: number) =>
   Math.round(Math.min(255, Math.max(0, v)) / CHANNEL_STEP) * CHANNEL_STEP;

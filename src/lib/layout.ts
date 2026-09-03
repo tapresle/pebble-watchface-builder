@@ -18,7 +18,7 @@ export const MOBILE_QUERY = `(max-width: ${MOBILE_MAX_WIDTH}px)`;
 /**
  * The layout to open in. Read once, when the app loads.
  *
- * Deliberately not reactive: a resize, a rotation or a soft keyboard sliding up
+ * Deliberately not reactive: a resize, a rotation, or a soft keyboard sliding up
  * must not rearrange the editor under someone mid-edit. The only thing that
  * changes it afterwards is the toggle in the header, and that choice is not
  * saved - a reload goes back to whatever the viewport says.

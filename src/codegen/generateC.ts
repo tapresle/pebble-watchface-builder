@@ -235,7 +235,7 @@ function boxConsts(el: { x: number; y: number; w: number; h: number }, k: Consts
 }
 
 /**
- * The box, color, font and alignment every text-drawing element shares. The
+ * The box, color, font, and alignment every text-drawing element shares. The
  * color is skipped for elements that pick one at draw time.
  */
 function textConsts(el: TextBox, ctx: Ctx, k: Consts, withColor = true): TextConsts {
@@ -1146,7 +1146,7 @@ function weatherIconHelper(): string {
   return L.join('\n');
 }
 
-/** Globals, handlers and wiring for the phone weather companion. */
+/** Globals, handlers, and wiring for the phone weather companion. */
 function weatherGlobals(): string[] {
   return [
     '// Weather, filled in by the companion JavaScript running on the phone.',

@@ -1,4 +1,4 @@
-/** Bounding-box maths shared by the canvas, the selection UI and the inspector. */
+/** Bounding-box maths shared by the canvas, the selection UI, and the inspector. */
 
 import type { WatchElement } from '../types';
 import type { PlatformSpec } from './platform';
