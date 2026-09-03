@@ -7,7 +7,7 @@
  * PLATFORMS.
  */
 
-export type PlatformId = 'emery' | 'flint' | 'gabbro';
+export type PlatformId = 'emery' | 'flint' | 'gabbro' | 'diorite';
 
 export interface PlatformSpec {
   id: PlatformId;
@@ -41,6 +41,14 @@ export interface PlatformSpec {
   shell: 'metal' | 'plastic';
   /** Whether the watch has an optical heart rate sensor. */
   hasHeartRate: boolean;
+  /**
+   * Set where only some models carry that sensor. The Pebble 2 shipped as both
+   * the 2 HR and the sensorless 2 SE, and the SDK calls both of them diorite,
+   * so there is no way to tell them apart at build time. The element stays
+   * available - the code compiles and runs either way - but the export says
+   * plainly that it will sit on its placeholder for anyone wearing an SE.
+   */
+  heartRateOptional?: boolean;
   /** Whether the watch has a magnetometer to drive a compass. */
   hasCompass: boolean;
 }
@@ -128,13 +136,44 @@ export const PEBBLE_ROUND_2: PlatformSpec = {
   hasCompass: true,
 };
 
+/*
+ * The one legacy watch here. The Pebble 2 predates Core Devices: same 144x168
+ * 1-bit screen as the Core 2 Duo, but it dropped the magnetometer the original
+ * Pebble and Pebble Time carried, so it has nothing but an accelerometer and,
+ * on the HR model, the optical sensor.
+ */
+export const PEBBLE_2: PlatformSpec = {
+  id: 'diorite',
+  name: 'Pebble 2',
+  sdkPlatform: 'diorite',
+  width: 144,
+  height: 168,
+  shape: 'rect',
+  screenRadius: 8,
+  bezel: 24,
+  colorMode: 'bw',
+  colorCount: 2,
+  palette: MONO_PALETTE,
+  paletteColumns: 2,
+  shell: 'plastic',
+  hasHeartRate: true,
+  heartRateOptional: true,
+  hasCompass: false,
+};
+
 export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
   emery: PEBBLE_TIME_2,
   flint: CORE_2_DUO,
   gabbro: PEBBLE_ROUND_2,
+  diorite: PEBBLE_2,
 };
 
-export const PLATFORM_LIST: PlatformSpec[] = [PEBBLE_TIME_2, CORE_2_DUO, PEBBLE_ROUND_2];
+export const PLATFORM_LIST: PlatformSpec[] = [
+  PEBBLE_TIME_2,
+  CORE_2_DUO,
+  PEBBLE_ROUND_2,
+  PEBBLE_2,
+];
 
 export const DEFAULT_PLATFORM: PlatformId = 'emery';
 

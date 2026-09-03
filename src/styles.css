@@ -943,9 +943,14 @@ a:hover {
  * Device picker
  * ------------------------------------------------------------------ */
 
+/* Auto-fit rather than a fixed column count, so a watch added to PLATFORM_LIST
+   wraps to another row instead of being squeezed. The minimum is the widest
+   preview - the Round 2's case at PREVIEW_SCALE - plus the card's padding, so a
+   column is never narrower than the watch standing in it. Four fit across the
+   desktop modal; a phone gets a single column rather than a clipped preview. */
 .device-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
   gap: 12px;
 }
 
@@ -980,19 +985,27 @@ a:hover {
   background: var(--accent-soft);
 }
 
+/* The Current chip always drops onto its own line and every card reserves the
+   room for one, badge or no badge. Left on the same line it would wrap the name
+   of whichever card carries it, dropping that card's spec rows a line below its
+   neighbours'. */
 .device-name {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  align-content: center;
   justify-content: center;
-  gap: 7px;
-  min-height: 19px;
+  gap: 4px;
+  min-height: 38px;
   font-size: 14px;
   font-weight: 700;
   margin-top: 8px;
+  white-space: nowrap;
 }
 /* Deliberately not accent-colored: on this card the accent means "selected",
    and two orange rings on one card read as a selection that is not there. */
 .device-badge {
+  flex-basis: 100%;
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.06em;

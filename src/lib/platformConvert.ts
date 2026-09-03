@@ -90,6 +90,8 @@ export interface ConversionSummary {
   moved: number;
   /** Heart rate elements the target watch has no sensor to feed. */
   heartRateStranded: number;
+  /** Compass elements the target watch has no magnetometer to feed. */
+  compassStranded: number;
 }
 
 export function summarizeConversion(
@@ -100,13 +102,15 @@ export function summarizeConversion(
   let recolored = 0;
   let moved = 0;
   let heartRateStranded = 0;
+  let compassStranded = 0;
   for (const el of project.elements) {
     if (el.type === 'heartRate' && !spec.hasHeartRate) heartRateStranded += 1;
+    if (el.type === 'compass' && !spec.hasCompass) compassStranded += 1;
     if (quantizeElementColors(el, spec) !== el) recolored += 1;
     const fitted = fitToScreen(el, spec);
     if (fitted.x !== el.x || fitted.y !== el.y) moved += 1;
   }
-  return { recolored, moved, heartRateStranded };
+  return { recolored, moved, heartRateStranded, compassStranded };
 }
 
 export function convertProjectToPlatform(

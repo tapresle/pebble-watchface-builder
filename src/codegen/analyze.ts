@@ -111,6 +111,11 @@ export function analyzeProject(project: WatchfaceProject): ProjectAnalysis {
             `"${el.name}" reads the heart rate sensor, which the ${spec.name} does not have. ` +
               `It will always show its placeholder.`,
           );
+        } else if (spec.heartRateOptional) {
+          warnings.push(
+            `"${el.name}" reads the heart rate sensor, which only some ${spec.name} models have. ` +
+              `On one without it, this shows its placeholder.`,
+          );
         }
         break;
       case 'weather':

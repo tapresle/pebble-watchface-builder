@@ -169,13 +169,13 @@ export function DevicePicker({ mode, onCancel, onPick }: DevicePickerProps) {
                 {conversion.moved} element{conversion.moved === 1 ? '' : 's'}{' '}
                 {target.shape === 'round' ? (
                   <>
-                    sit where the {target.name} cannot show them - a round panel only lights up the
+                    sit{conversion.moved === 1 ? 's' : ''} where the {target.name} cannot show them - a round panel only lights up the
                     circle inscribed in its {target.width} × {target.height} framebuffer, so the
                     corners are dead space - and will be pulled into view.{' '}
                   </>
                 ) : (
                   <>
-                    sit outside the {target.width} × {target.height} screen and will be nudged back
+                    sit{conversion.moved === 1 ? 's' : ''} outside the {target.width} × {target.height} screen and will be nudged back
                     into view.{' '}
                   </>
                 )}
@@ -188,9 +188,17 @@ export function DevicePicker({ mode, onCancel, onPick }: DevicePickerProps) {
                 the {target.name} has no heart rate sensor.{' '}
               </>
             )}
+            {conversion.compassStranded > 0 && (
+              <>
+                {conversion.compassStranded} compass element
+                {conversion.compassStranded === 1 ? '' : 's'} will keep showing the placeholder -
+                the {target.name} has no magnetometer.{' '}
+              </>
+            )}
             {conversion.recolored === 0 &&
               conversion.moved === 0 &&
-              conversion.heartRateStranded === 0 && (
+              conversion.heartRateStranded === 0 &&
+              conversion.compassStranded === 0 && (
                 <>Nothing needs adjusting - everything already fits.</>
               )}
           </div>
