@@ -3,6 +3,7 @@
  * focus, so nothing has to reach for window.confirm().
  */
 
+import { CloseIcon } from './icons';
 import { useEffect, useRef, type ReactNode } from 'react';
 
 export type ModalSize = 'sm' | 'md' | 'lg';
@@ -74,7 +75,7 @@ export function ModalHeader({
       {children}
       {onClose && (
         <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} title="Close">
-          ✕
+          <CloseIcon />
         </button>
       )}
     </div>

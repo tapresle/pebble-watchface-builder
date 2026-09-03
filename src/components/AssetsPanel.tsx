@@ -9,6 +9,7 @@ import { useStore } from '../store';
 import { arrayBufferToBase64, formatBytes, toIdentifier, uid } from '../lib/utils';
 import { customFontFamily, useCustomFonts } from '../lib/fontLoader';
 import { Segmented, SliderField, TextField } from './fields';
+import { CloseIcon } from './icons';
 import {
   compositingFor,
   detectAlpha,
@@ -121,7 +122,7 @@ function FontsSection() {
                 onClick={() => store.removeFont(font.id)}
                 title="Remove font"
               >
-                ✕
+                <CloseIcon />
               </button>
             </div>
             <div
@@ -231,7 +232,7 @@ function ImagesSection() {
               onClick={() => store.removeImage(image.id)}
               title="Remove image"
             >
-              ✕
+              <CloseIcon />
             </button>
           </div>
           <div className="asset-preview">

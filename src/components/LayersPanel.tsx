@@ -4,6 +4,7 @@
 import { useRef, useState } from 'react';
 import { useStore } from '../store';
 import { ELEMENT_KINDS } from '../lib/defaults';
+import { EyeIcon, EyeOffIcon, LockIcon, UnlockIcon } from './icons';
 
 const typeLabel = (type: string): string =>
   ELEMENT_KINDS.find((k) => k.type === type)?.label ?? type;
@@ -157,7 +158,7 @@ export function LayersPanel() {
                   store.patchElement(el.id, { visible: !el.visible });
                 }}
               >
-                {el.visible ? '👁' : '🚫'}
+                {el.visible ? <EyeIcon /> : <EyeOffIcon />}
               </button>
               <button
                 type="button"
@@ -168,7 +169,7 @@ export function LayersPanel() {
                   store.patchElement(el.id, { locked: !el.locked });
                 }}
               >
-                {el.locked ? '🔒' : '🔓'}
+                {el.locked ? <LockIcon /> : <UnlockIcon />}
               </button>
             </div>
           ))}

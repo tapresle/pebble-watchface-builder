@@ -22,6 +22,7 @@ import { base64ToUint8Array, downloadBlob, PROJECT_FILE_NAME, projectSlug } from
 import { createZip, textEntry, type ZipEntry } from '../lib/zip';
 import { reduceImage, reduceOptions } from '../lib/imageConvert';
 import { Modal } from './Modal';
+import { CloseIcon, DownloadIcon } from './icons';
 
 type Tab = 'guide' | 'c' | 'manifest' | 'js';
 
@@ -130,10 +131,10 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
             </button>
           )}
           <button type="button" className="btn btn-primary" onClick={() => void downloadZip()}>
-            ⬇ Download project
+            <DownloadIcon /> Download project
           </button>
           <button type="button" className="btn btn-ghost" onClick={onClose} title="Close">
-            ✕
+            <CloseIcon />
           </button>
         </div>
 
@@ -213,7 +214,7 @@ function SetupGuide({
       </p>
       <p>
         <button type="button" className="btn btn-primary" onClick={onDownload}>
-          ⬇ Download project
+          <DownloadIcon /> Download project
         </button>
       </p>
       <table className="table">

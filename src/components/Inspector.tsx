@@ -38,6 +38,7 @@ import {
   TextField,
   ToggleField,
 } from './fields';
+import { DuplicateIcon, TrashIcon } from './icons';
 
 type Patch = Partial<WatchElement>;
 
@@ -945,7 +946,7 @@ export function Inspector() {
           title="Duplicate"
           onClick={() => store.duplicateElement(el.id)}
         >
-          ⧉
+          <DuplicateIcon />
         </button>
         <button
           type="button"
@@ -953,7 +954,7 @@ export function Inspector() {
           title="Delete"
           onClick={() => store.removeElement(el.id)}
         >
-          🗑
+          <TrashIcon />
         </button>
       </div>
 
