@@ -877,11 +877,14 @@ a:hover {
 .modal[data-size='sm'] {
   width: min(460px, 100%);
 }
-/* Sized to the device picker, its only user: wide enough for one row of
-   .device-grid columns at every watch in PLATFORM_LIST, so a fifth does not
-   orphan itself onto a second row. */
+/* Sized to the device picker, its only user. One row per watch stopped scaling
+   at six: fitting them all across needs ~1120px, which a 1024px laptop does not
+   have, and it degrades to a row of five plus an orphan. Three to a row instead,
+   which is what PLATFORM_LIST is ordered for - current watches, then legacy - and
+   which stays balanced all the way down: 3+3, then 2+2+2, then one column on a
+   phone. Widen this only to a number that still divides six. */
 .modal[data-size='md'] {
-  width: min(960px, 100%);
+  width: min(720px, 100%);
 }
 .modal[data-size='lg'] {
   width: min(1080px, 100%);
@@ -949,7 +952,7 @@ a:hover {
 /* Auto-fit rather than a fixed column count, so a watch added to PLATFORM_LIST
    wraps to another row instead of being squeezed. The minimum is the widest
    preview - the Round 2's case at PREVIEW_SCALE - plus the card's padding, so a
-   column is never narrower than the watch standing in it. Five fit across the
+   column is never narrower than the watch standing in it. Three fit across the
    desktop modal; a phone gets a single column rather than a clipped preview. */
 .device-grid {
   display: grid;

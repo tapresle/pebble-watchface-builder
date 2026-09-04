@@ -4,9 +4,10 @@
 
 Live site at [pebble-watchface-builder.netlify.app](https://pebble-watchface-builder.netlify.app/)
 
-A drag-and-drop watchface designer for the **Pebble Time 2**, the **Core 2 Duo**, the
-**Pebble Round 2**, and the legacy **Pebble 2** and **Pebble Time Round** that runs in the
-browser and exports a ready-to-build **Pebble C SDK** project for CloudPebble.
+A drag-and-drop watchface designer for six Pebble watches - Core Devices' **Pebble Time
+2**, **Core 2 Duo**, and **Pebble Round 2**, plus the legacy **Pebble Time**, **Pebble Time
+Round**, and **Pebble 2** - that runs in the browser and exports a ready-to-build **Pebble
+C SDK** project for CloudPebble.
 
 There is no backend. The editor, the font handling, the code generator, and the zip writer
 all run client side, and the production build is a folder of static files. The only thing
@@ -14,10 +15,11 @@ fetched from anywhere else is the Buy Me a Coffee button in the corner.
 
 ## What you get
 
-- A device picker on first run: Pebble Time 2 (`emery`, 200×228, 64 colors), Core 2 Duo
-  (`flint`, 144×168, black and white), Pebble Round 2 (`gabbro`, 260×260, 64 colors,
-  round), or one of the two legacy watches - Pebble 2 (`diorite`, 144×168, black and
-  white) and Pebble Time Round (`chalk`, 180×180, 64 colors, round). You can retarget an
+- A device picker on first run. Core Devices' current three: Pebble Time 2 (`emery`,
+  200×228, 64 colors), Core 2 Duo (`flint`, 144×168, black and white), and Pebble Round 2
+  (`gabbro`, 260×260, 64 colors, round). Then the three legacy watches, in release order:
+  Pebble Time (`basalt`, 144×168, 64 colors), Pebble Time Round (`chalk`, 180×180, 64
+  colors, round), and Pebble 2 (`diorite`, 144×168, black and white). You can retarget an
   existing design at another watch, and colors and stray positions are converted for you.
 - A live preview of the chosen screen with drag, resize, snap, grid, and keyboard nudging.
   On the round watches, elements size themselves to the visible circle's chord and the
@@ -38,12 +40,12 @@ fetched from anywhere else is the Buy Me a Coffee button in the corner.
   the heart rate element only appears for watches with the sensor, the compass only for
   watches with a magnetometer. The Pebble 2 has neither a magnetometer nor, on the SE
   model, the heart rate sensor, so it gets the compass hidden outright and a note on the
-  export saying the heart rate reading depends on which model it runs on. The Time Round
-  kept the magnetometer and never had a heart rate sensor, so it gets the compass and not
-  the pulse.
+  export saying the heart rate reading depends on which model it runs on. The Pebble Time
+  and the Time Round both kept the magnetometer and neither ever had a heart rate sensor,
+  so they get the compass and not the pulse.
 - Colors limited to what the chosen watch can actually display - 64 on the Time 2, the
-  Round 2, and the Time Round, black and white on the Core 2 Duo and the Pebble 2 - so the
-  preview does not lie. Uploaded PNGs get the same treatment, with a choice of nearest-color or
+  Round 2, the Pebble Time, and the Time Round, black and white on the Core 2 Duo and the
+  Pebble 2 - so the preview does not lie. Uploaded PNGs get the same treatment, with a choice of nearest-color or
   Floyd-Steinberg dithering, and the reduced file is what lands in the exported project.
   Bitmaps are also built at the exact size they are drawn at, because
   `graphics_draw_bitmap_in_rect` clips or tiles rather than scaling.
@@ -104,10 +106,10 @@ npm run verify   # typecheck + text and icon guards + generated-C check + produc
 
 ## Notes and limitations
 
-- Emery (Pebble Time 2), Flint (Core 2 Duo), Gabbro (Pebble Round 2), Diorite
-  (Pebble 2), and Chalk (Pebble Time Round) are the supported targets. Platform specs are
-  isolated in `src/lib/platform.ts` if you want to add Basalt or Aplite - a new entry in
-  `PLATFORMS` is most of the work.
+- Emery (Pebble Time 2), Flint (Core 2 Duo), Gabbro (Pebble Round 2), Basalt (Pebble
+  Time), Chalk (Pebble Time Round), and Diorite (Pebble 2) are the supported targets.
+  Platform specs are isolated in `src/lib/platform.ts` if you want to add Aplite, the one
+  remaining - a new entry in `PLATFORMS` is most of the work.
 - Built-in system fonts are previewed with stand-ins sized to each font's real cap
   height, measured from the reference renderings Core Devices publishes per font key.
   Roboto and Droid Serif are the genuine typefaces; Gothic (Raster Gothic), Bitham
