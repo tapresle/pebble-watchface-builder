@@ -16,15 +16,16 @@ fetched from anywhere else is the Buy Me a Coffee button in the corner.
 
 | Watch | Platform | Screen | Colors |
 | --- | --- | --- | --- |
-| Pebble Time 2 | `emery` | 200×228 | 64 |
 | Core 2 Duo | `flint` | 144×168 | black and white |
+| Pebble Time 2 | `emery` | 200×228 | 64 |
 | Pebble Round 2 | `gabbro` | 260×260, round | 64 |
 | Pebble Classic | `aplite` | 144×168 | black and white |
 | Pebble Time | `basalt` | 144×168 | 64 |
 | Pebble Time Round | `chalk` | 180×180, round | 64 |
 | Pebble 2 | `diorite` | 144×168 | black and white |
 
-The first three are Core Devices' current watches; the rest are legacy, in release order.
+The first three are Core Devices' current watches; the rest are legacy. Both groups run
+oldest to newest by release date.
 That is every platform the Pebble SDK builds for. The original is listed as Pebble Classic
 because plain "Pebble" beside a Pebble 2 and a Pebble Time reads as a category rather than
 a watch.

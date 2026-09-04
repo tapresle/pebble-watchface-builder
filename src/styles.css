@@ -469,8 +469,11 @@ a:hover {
 }
 /* Scoped to the panel itself: the element palette wraps each group in its own
    div, so an unscoped :first-child stripped the top margin from every heading
-   and jammed it against the buttons above. */
-.panel-scroll > .section-title:first-child {
+   and jammed it against the buttons above. The device picker needs the same
+   thing for its first group, whose heading would otherwise double the space
+   under the modal header. */
+.panel-scroll > .section-title:first-child,
+.device-group:first-child > .section-title:first-child {
   margin-top: 0;
 }
 
@@ -877,11 +880,11 @@ a:hover {
 .modal[data-size='sm'] {
   width: min(460px, 100%);
 }
-/* Sized to the device picker, its only user. Picking a width whose row count
-   divides the watch count evenly worked for five and six and has run out at
-   seven, which no row count splits. So the grid centers its last row instead
-   (see .device-grid) and this width just buys the roomier of the two shapes:
-   four then three, rather than the three rows a narrower modal would take. */
+/* Sized to the device picker, its only user. The picker now draws its two
+   groups separately, so what this has to fit across is the larger group - the
+   four legacy watches - rather than all seven. Narrower than this and that
+   group wraps to 3+1, which reads as a card that fell off the row rather than
+   as a group of four. */
 .modal[data-size='md'] {
   width: min(900px, 100%);
 }
@@ -948,18 +951,25 @@ a:hover {
  * Device picker
  * ------------------------------------------------------------------ */
 
-/* A wrapping flex row rather than an auto-fit grid. Seven is the first count no
-   row length divides evenly - four leaves three over, three leaves one - and a
-   grid strands that remainder against the left edge, which reads as a card
-   missing from the row rather than as the end of the list. Flex centers a short
-   last row, so it reads as deliberate at every count.
+/* One of these per group, so a group always wraps on its own and never trails
+   into the next one's row. Nothing separates the groups but their headings and
+   the margin those already carry - the cards each have a border, and boxing a
+   set of bordered things inside another border muddies which one the selection
+   ring is on.
+
+   A wrapping flex row rather than an auto-fit grid: a grid strands a short last
+   row against the left edge, which reads as a card missing from the row rather
+   than as the end of the group. Flex centers it, which reads as deliberate at
+   any count - and a group of three sitting under a group of four is exactly
+   that case, at every width.
 
    Cards are a fixed width rather than 1fr because flex distributes free space
-   per row: letting them grow would make the last row's few cards wider than the
-   full rows above. Fixed keeps every card identical and pays for it with a
-   little air at the ends of a row, which the centering makes look intended. The
-   width covers the widest preview, the Round 2's case at PREVIEW_SCALE, plus
-   the card's padding, so a card is never narrower than the watch inside it. */
+   per row: letting them grow would make a three-card row wider per card than
+   the four-card row above it. Fixed keeps every card identical across both
+   groups and pays for it with a little air at the ends of a row, which the
+   centering makes look intended. The width covers the widest preview, the Round
+   2's case at PREVIEW_SCALE, plus the card's padding, so a card is never
+   narrower than the watch inside it. */
 .device-grid {
   display: flex;
   flex-wrap: wrap;
@@ -987,11 +997,13 @@ a:hover {
   border-color: var(--border-strong);
 }
 
-/* Sized to the tallest watch and bottom-aligned, so both previews sit on the
-   same baseline however tall the screen being previewed is. */
+/* Sized to the tallest watch and centered in that box, so every preview in a
+   row shares one horizontal center line however tall the case being drawn is.
+   These were bottom-aligned on a common baseline, which lined the watches up by
+   their chins and left the shorter ones sitting low in their cards. */
 .device-preview {
   display: grid;
-  align-items: end;
+  align-items: center;
   justify-items: center;
 }
 .device-card[data-selected='true'] {

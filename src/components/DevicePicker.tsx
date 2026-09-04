@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import type { PlatformId } from '../types';
-import { PLATFORM_LIST, type PlatformSpec } from '../lib/platform';
+import { PLATFORM_GROUPS, PLATFORM_LIST, type PlatformSpec } from '../lib/platform';
 import { tokensFor } from '../lib/defaults';
 import { summarizeConversion } from '../lib/platformConvert';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from './Modal';
@@ -136,17 +136,22 @@ export function DevicePicker({ mode, onCancel, onPick }: DevicePickerProps) {
     <Modal size="md" label={title} onClose={onCancel}>
       <ModalHeader title={title} subtitle={subtitle} onClose={onCancel} />
       <ModalBody>
-        <div className="device-grid">
-          {PLATFORM_LIST.map((spec) => (
-            <DeviceCard
-              key={spec.id}
-              spec={spec}
-              selected={choice === spec.id}
-              isCurrent={mode === 'switch' && spec.id === current}
-              onSelect={() => setChoice(spec.id)}
-            />
-          ))}
-        </div>
+        {PLATFORM_GROUPS.map((group) => (
+          <div className="device-group" key={group.label}>
+            <div className="section-title">{group.label}</div>
+            <div className="device-grid">
+              {group.platforms.map((spec) => (
+                <DeviceCard
+                  key={spec.id}
+                  spec={spec}
+                  selected={choice === spec.id}
+                  isCurrent={mode === 'switch' && spec.id === current}
+                  onSelect={() => setChoice(spec.id)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
 
         {mode === 'new' && store.project.elements.length > 0 && !store.needsDeviceChoice && (
           <div className="callout callout-warn">
