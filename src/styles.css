@@ -977,6 +977,14 @@ a:hover {
   gap: 12px;
 }
 
+/* Scoped to the picker rather than set on .section-title, which is the heading
+   for every panel in the app - the Inspector alone has some thirty of them, and
+   accenting the lot would spend the color on nothing in particular. Here there
+   are two, and they are the only structure the dialog has. */
+.device-group > .section-title {
+  color: var(--accent-text);
+}
+
 .device-card {
   flex: 0 0 200px;
   display: grid;
@@ -1028,18 +1036,33 @@ a:hover {
   margin-top: 8px;
   white-space: nowrap;
 }
-/* Deliberately not accent-colored: on this card the accent means "selected",
-   and two orange rings on one card read as a selection that is not there. */
+/* A bare accent label, no pill. Dropping the border also retires what the ring
+   used to have to be careful about - an outline here sat inside the accent
+   outline a selected card already wears, and two rings on one card read as a
+   selection that is not there.
+
+   9.5px was small even for a badge; 11px reads more easily and stays clearly
+   subordinate to the 14px name above it. The size is not what gets this to AA
+   though: 4.5:1 applies to anything below 18.66px bold, so no sane badge size
+   reaches the 3:1 large-text bar. The contrast has to come from the color,
+   which is what the light-mode rule below is for. */
 .device-badge {
   flex-basis: 100%;
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-faint);
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  padding: 1px 6px;
+  color: var(--accent-text);
+}
+
+/* --accent-text clears AA where it is mostly used - 4.7:1 on the group headings
+   against the modal - but the badge sits on the lighter card panel, where the
+   same red lands at 4.25:1, under the 4.5:1 this size needs. A shade darker
+   clears it without reading as a second red next to those headings. Scoped to
+   the badge rather than nudged in the token, which every accent-colored string
+   in the app shares. Dark mode is already past 7:1 and is left alone. */
+:root[data-theme='light'] .device-badge {
+  color: #cc3520;
 }
 .device-specs {
   display: grid;
