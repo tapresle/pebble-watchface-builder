@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Strips Co-authored-by trailers, and the "Generated with Claude Code" footer,
+# from a commit message.
+#
+# CLAUDE.md says not to write them, but a rule only binds whoever reads it, and
+# these get appended by tool defaults and by notices that claim to override
+# earlier instructions. This is the backstop that does not depend on anyone
+# agreeing: the lines come out whether or not they should have gone in.
+#
+# Every co-author is stripped, not just the AI ones. This is a single-author
+# repo, so there is no case where the trailer is wanted, and matching on who is
+# named means a new tool with a new name walks straight past it.
+#
+# It strips rather than rejects. Rejecting leaves the trailer in the retry, and
+# whatever added it in the first place tends to add it again.
+#
+# Enable in a fresh clone with:  git config core.hooksPath .githooks
+set -euo pipefail
+
+msg_file="$1"
+before="$(wc -l < "$msg_file" | tr -d ' ')"
+
+stripped="$(sed -E \
+  -e '/^[[:space:]]*[Cc][Oo]-[Aa][Uu][Tt][Hh][Oo][Rr][Ee][Dd]-[Bb][Yy]:/d' \
+  -e '/^[[:space:]]*🤖?[[:space:]]*Generated with \[?Claude Code\]?.*$/d' \
+  -e '/^[[:space:]]*Generated with Claude.*$/d' \
+  "$msg_file")"
+
+# cat -s collapses the run of blank lines a removed trailer leaves behind.
+printf '%s\n' "$stripped" | cat -s > "$msg_file"
+
+after="$(wc -l < "$msg_file" | tr -d ' ')"
+if [ "$before" != "$after" ]; then
+  echo "commit-msg: stripped a co-author or attribution trailer (see CLAUDE.md)" >&2
+fi
