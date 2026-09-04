@@ -154,15 +154,15 @@ export const PEBBLE_ROUND_2: PlatformSpec = {
  * The one that started it all, and the only 1-bit watch here with a
  * magnetometer - the Pebble 2 dropped it three years later.
  *
- * Named Pebble Classic rather than plain Pebble, which is what it was actually
+ * Two watches share this slug: the Kickstarter Pebble and the stainless Pebble
+ * Steel. The case differs and nothing a watchface can see does, so the name
+ * carries both and the preview draws the plastic original.
+ *
+ * Classic rather than plain Pebble, which is what the first one was actually
  * sold as. Every other name in this file is the name on the box, but "Pebble"
  * alone in a list that also holds a Pebble 2 and a Pebble Time reads as a
- * category rather than a watch, and it leaves every warning string ambiguous.
- * The retronym is what the community settled on for the same reason.
- *
- * The Kickstarter Pebble and the Pebble Steel share the aplite slug the way the
- * Time and the Time Steel share basalt: the case differs, nothing a watchface
- * can see does, so the preview draws the plastic original.
+ * category rather than a watch. The retronym is what the community settled on
+ * for the same reason.
  *
  * Health is the one open question, and it is deliberately not answered here.
  * The generated C wraps every step and heart rate read in
@@ -172,7 +172,7 @@ export const PEBBLE_ROUND_2: PlatformSpec = {
  */
 export const PEBBLE_CLASSIC: PlatformSpec = {
   id: 'aplite',
-  name: 'Pebble Classic',
+  name: 'Pebble Classic & Steel',
   sdkPlatform: 'aplite',
   width: 144,
   height: 168,
@@ -193,14 +193,14 @@ export const PEBBLE_CLASSIC: PlatformSpec = {
  * original Pebble, but 64-color e-paper rather than 1-bit, and it carried the
  * magnetometer the Pebble 2 would later drop.
  *
- * It shipped as the plastic Time and the stainless Time Steel, and the SDK calls
- * both of them basalt. Unlike the Pebble 2's two heart rate variants, nothing
- * here turns on which one you own - the difference is the case, not a sensor -
- * so the preview draws the plastic Time and there is no flag to set.
+ * Like aplite, two watches share it: the plastic Time and the stainless Time
+ * Steel. Unlike the Pebble 2's two heart rate variants, nothing here turns on
+ * which one you own - the difference is the case, not a sensor - so the name
+ * carries both, the preview draws the plastic Time, and there is no flag.
  */
 export const PEBBLE_TIME: PlatformSpec = {
   id: 'basalt',
-  name: 'Pebble Time',
+  name: 'Pebble Time & Time Steel',
   sdkPlatform: 'basalt',
   width: 144,
   height: 168,
