@@ -17,10 +17,13 @@ import { useEffect, useRef } from 'react';
 
 const SCRIPT_SRC = 'https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js';
 
+/* data-color is baked into the widget's own markup, so it cannot read --accent
+   off the document - it is the same #fa4a36 written out by hand, and has to be
+   changed with the token. */
 const BUTTON_ATTRS: Record<string, string> = {
   'data-name': 'bmc-button',
   'data-slug': 'tapresle',
-  'data-color': '#FF5F5F',
+  'data-color': '#fa4a36',
   'data-emoji': '☕',
   'data-font': 'Lato',
   'data-text': 'Buy me a coffee',
