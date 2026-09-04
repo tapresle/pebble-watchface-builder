@@ -3,11 +3,11 @@
  *
  * Everything platform-specific is funnelled through this module: screen size,
  * screen shape, how many colors the panel can show, and which SDK platform slug
- * the export targets. Adding Basalt or Chalk later means adding an entry to
+ * the export targets. Adding Aplite or Basalt later means adding an entry to
  * PLATFORMS.
  */
 
-export type PlatformId = 'emery' | 'flint' | 'gabbro' | 'diorite';
+export type PlatformId = 'emery' | 'flint' | 'gabbro' | 'diorite' | 'chalk';
 
 export interface PlatformSpec {
   id: PlatformId;
@@ -137,10 +137,10 @@ export const PEBBLE_ROUND_2: PlatformSpec = {
 };
 
 /*
- * The one legacy watch here. The Pebble 2 predates Core Devices: same 144x168
- * 1-bit screen as the Core 2 Duo, but it dropped the magnetometer the original
- * Pebble and Pebble Time carried, so it has nothing but an accelerometer and,
- * on the HR model, the optical sensor.
+ * The first of the two legacy watches. The Pebble 2 predates Core Devices: same
+ * 144x168 1-bit screen as the Core 2 Duo, but it dropped the magnetometer the
+ * original Pebble and Pebble Time carried, so it has nothing but an
+ * accelerometer and, on the HR model, the optical sensor.
  */
 export const PEBBLE_2: PlatformSpec = {
   id: 'diorite',
@@ -161,18 +161,51 @@ export const PEBBLE_2: PlatformSpec = {
   hasCompass: false,
 };
 
+/*
+ * The other legacy watch, and the first round Pebble by three years. The Time
+ * Round put the Pebble Time's 64-color e-paper into a 180x180 circle in 2015
+ * and kept the magnetometer, so the only complication it cannot feed is the
+ * heart rate that arrived a year later on the Pebble 2.
+ *
+ * Its bezel is the thickest of the lot, which is the watch's whole silhouette:
+ * the case is far wider than the one-inch screen inside it. The number below is
+ * the ring at a size that still reads as a Time Round on the canvas, not a
+ * millimetre-accurate conversion - it is preview chrome, and every other watch
+ * here is drawn to the same loose standard.
+ */
+export const PEBBLE_TIME_ROUND: PlatformSpec = {
+  id: 'chalk',
+  name: 'Pebble Time Round',
+  sdkPlatform: 'chalk',
+  width: 180,
+  height: 180,
+  shape: 'round',
+  screenRadius: 0,
+  bezel: 30,
+  colorMode: 'color',
+  colorCount: 64,
+  palette: PEBBLE_PALETTE,
+  paletteColumns: 8,
+  shell: 'metal',
+  hasHeartRate: false,
+  hasCompass: true,
+};
+
 export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
   emery: PEBBLE_TIME_2,
   flint: CORE_2_DUO,
   gabbro: PEBBLE_ROUND_2,
   diorite: PEBBLE_2,
+  chalk: PEBBLE_TIME_ROUND,
 };
 
+/* Current Core Devices watches first, then the legacy pair. */
 export const PLATFORM_LIST: PlatformSpec[] = [
   PEBBLE_TIME_2,
   CORE_2_DUO,
   PEBBLE_ROUND_2,
   PEBBLE_2,
+  PEBBLE_TIME_ROUND,
 ];
 
 export const DEFAULT_PLATFORM: PlatformId = 'emery';
