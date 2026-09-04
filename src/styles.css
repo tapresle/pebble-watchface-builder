@@ -465,15 +465,15 @@ a:hover {
   gap: 6px;
 }
 
-/* Accented, the same as the headings in the device picker: these are the only
-   structure the panels have, and the color is what separates a heading from the
-   controls under it at this size. */
+/* The accent itself, not the softened --accent-text: the headings are the only
+   structure the panels have, and one accent red across the app beats two that
+   sit a shade apart. */
 .section-title {
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: var(--accent-text);
+  color: var(--accent);
   margin: 18px 0 9px;
 }
 /* Scoped to the panel itself: the element palette wraps each group in its own
