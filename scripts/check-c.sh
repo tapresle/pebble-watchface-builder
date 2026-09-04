@@ -11,7 +11,7 @@ trap 'rm -rf "$work"' EXIT
 npx esbuild "$root/scripts/emit-fixture.ts" --bundle --platform=node --format=esm \
   --log-level=warning --outfile="$work/emit.mjs"
 
-for platform in emery flint gabbro diorite; do
+for platform in emery flint gabbro diorite chalk; do
   node "$work/emit.mjs" c "$platform" > "$work/generated-$platform.c"
   node "$work/emit.mjs" json "$platform" > "$work/package-$platform.json"
   node -e "

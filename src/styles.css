@@ -877,8 +877,11 @@ a:hover {
 .modal[data-size='sm'] {
   width: min(460px, 100%);
 }
+/* Sized to the device picker, its only user: wide enough for one row of
+   .device-grid columns at every watch in PLATFORM_LIST, so a fifth does not
+   orphan itself onto a second row. */
 .modal[data-size='md'] {
-  width: min(780px, 100%);
+  width: min(960px, 100%);
 }
 .modal[data-size='lg'] {
   width: min(1080px, 100%);
@@ -946,7 +949,7 @@ a:hover {
 /* Auto-fit rather than a fixed column count, so a watch added to PLATFORM_LIST
    wraps to another row instead of being squeezed. The minimum is the widest
    preview - the Round 2's case at PREVIEW_SCALE - plus the card's padding, so a
-   column is never narrower than the watch standing in it. Four fit across the
+   column is never narrower than the watch standing in it. Five fit across the
    desktop modal; a phone gets a single column rather than a clipped preview. */
 .device-grid {
   display: grid;
@@ -1058,10 +1061,12 @@ a:hover {
 .mini-screen[data-shape='round'] {
   border-radius: 50%;
 }
-/* Pull the sample bar in off the arc so it reads as fitting the round screen. */
+/* Pull the sample bar in off the arc so it reads as fitting the round screen.
+   A share of the width rather than a flat inset, which was tuned against the
+   Round 2 and left the narrower Time Round showing a stub of a bar. */
 .mini-screen[data-shape='round'] .mini-bar {
-  margin-left: 26px;
-  margin-right: 26px;
+  margin-left: 22%;
+  margin-right: 22%;
 }
 .mini-screen {
   position: relative;
