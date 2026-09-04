@@ -19,6 +19,9 @@ import { previewValues, useClock } from '../lib/previewValues';
 import { useCustomFonts, useSystemFontMetrics } from '../lib/fontLoader';
 import { useRenderedImages } from '../lib/imageConvert';
 import { ElementVisual } from './ElementVisual';
+import { ContextMenu, type MenuEntry } from './ContextMenu';
+import { CollectIcon, DuplicateIcon, GroupIcon, TrashIcon, UngroupIcon } from './icons';
+import { bringOnScreen, offScreenElements } from '../lib/platformConvert';
 import { clamp } from '../lib/utils';
 
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const;
@@ -66,6 +69,7 @@ export function Canvas({
   const { zoom, showGrid, snap } = settings;
   const screenRef = useRef<HTMLDivElement>(null);
   const [dropActive, setDropActive] = useState(false);
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
 
   useClock(preview.useLiveTime);
   useCustomFonts(project.fonts);
@@ -108,23 +112,107 @@ export function Canvas({
     window.addEventListener('pointerup', up);
   };
 
+  /**
+   * What a press on `id` should end up dragging. The store widens a selection
+   * to whole groups, but its state does not update until after this handler
+   * returns, so the same widening is done here to know what to move now.
+   */
+  const dragSetFor = (id: string): string[] => {
+    if (store.selectedIds.includes(id)) return store.selectedIds;
+    const el = project.elements.find((item) => item.id === id);
+    if (el?.groupId) {
+      return project.elements.filter((item) => item.groupId === el.groupId).map((item) => item.id);
+    }
+    return [id];
+  };
+
   const onElementPointerDown = (e: React.PointerEvent, id: string) => {
+    // The secondary button belongs to the context menu. Letting it through here
+    // is what used to start a drag with no pointerup to end it.
+    if (e.button !== 0) return;
     const el = project.elements.find((item) => item.id === id);
     if (!el) return;
-    store.select(id);
+
+    if (e.shiftKey || e.metaKey || e.ctrlKey) {
+      // A modified click edits the selection; it never also starts a drag,
+      // which would move whatever was just added by whatever the hand wobbled.
+      store.select(id, { additive: true });
+      return;
+    }
+
+    const ids = dragSetFor(id);
+    if (!store.selectedIds.includes(id)) store.select(id);
     onSelectOnCanvas?.(id);
     if (el.locked) return;
-    const origin = { x: el.x, y: el.y };
+
+    // Locked elements stay put even when the selection sweeps them up.
+    const origins = ids
+      .map((each) => project.elements.find((item) => item.id === each))
+      .filter((item): item is NonNullable<typeof item> => !!item && !item.locked)
+      .map((item) => ({ id: item.id, x: item.x, y: item.y }));
+    const anchor = origins.find((o) => o.id === id);
+    if (!anchor) return;
+
     startDrag(e, (dx, dy) => {
-      store.patchElement(
-        id,
-        {
-          x: clamp(snapValue(origin.x + dx), -400, width + 400),
-          y: clamp(snapValue(origin.y + dy), -400, height + 400),
-        },
+      // Snap the element under the cursor, then shift the rest by the same
+      // amount. Snapping each one on its own would grind a selection's relative
+      // spacing away a pixel at a time.
+      const shiftX = clamp(snapValue(anchor.x + dx), -400, width + 400) - anchor.x;
+      const shiftY = clamp(snapValue(anchor.y + dy), -400, height + 400) - anchor.y;
+      store.patchElements(
+        origins.map((o) => ({
+          id: o.id,
+          patch: {
+            x: clamp(o.x + shiftX, -400, width + 400),
+            y: clamp(o.y + shiftY, -400, height + 400),
+          },
+        })),
         { snapshot: false },
       );
     });
+  };
+
+  const onCanvasContextMenu = (e: React.MouseEvent, id?: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Right-clicking outside the selection moves to what is under the cursor,
+    // the way every other canvas behaves; inside it, the selection is kept.
+    if (id && !store.selectedIds.includes(id)) store.select(id);
+    if (!id) store.select(null);
+    setMenuAt({ x: e.clientX, y: e.clientY });
+  };
+
+  const menuEntries = (): MenuEntry[] => {
+    const count = store.selectedIds.length;
+    const single = store.selected;
+    return [
+      {
+        label: count > 1 ? `Group ${count} elements` : 'Group',
+        icon: <GroupIcon />,
+        disabled: !store.canGroup,
+        onSelect: store.groupSelection,
+      },
+      {
+        label: 'Ungroup',
+        icon: <UngroupIcon />,
+        disabled: !store.canUngroup,
+        onSelect: store.ungroupSelection,
+      },
+      'separator',
+      {
+        label: 'Duplicate',
+        icon: <DuplicateIcon />,
+        disabled: !single,
+        onSelect: () => single && store.duplicateElement(single.id),
+      },
+      {
+        label: count > 1 ? `Delete ${count} elements` : 'Delete',
+        icon: <TrashIcon />,
+        danger: true,
+        disabled: count === 0,
+        onSelect: store.removeSelection,
+      },
+    ];
   };
 
   const onHandlePointerDown = (e: React.PointerEvent, handle: Handle) => {
@@ -177,6 +265,9 @@ export function Canvas({
 
   const selected = store.selected;
   const selectionBox = selected ? elementBox(selected) : null;
+  // Same test the device switch uses, so the two agree on what "off screen"
+  // means and the button offers exactly the elements that dialog would move.
+  const stray = offScreenElements(project, spec);
 
   return (
     <div className="stage-body">
@@ -225,10 +316,12 @@ export function Canvas({
             store.addElement(element);
           }}
           onPointerDown={(e) => {
+            if (e.button !== 0) return;
             if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.canvasBackground) {
               store.select(null);
             }
           }}
+          onContextMenu={(e) => onCanvasContextMenu(e)}
         >
           <div className="canvas-root" style={{ transform: `scale(${zoom})`, width, height }}>
             <div data-canvas-background="true" style={{ position: 'absolute', inset: 0 }} />
@@ -249,6 +342,13 @@ export function Canvas({
                     touchAction: 'none',
                   }}
                   onPointerDown={(e) => onElementPointerDown(e, el.id)}
+                  onContextMenu={(e) => onCanvasContextMenu(e, el.id)}
+                  // A single click on a grouped element takes the whole group,
+                  // so this is the way to reach one member to edit it.
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    store.select(el.id, { solo: true });
+                  }}
                 >
                   <ElementVisual
                     el={el}
@@ -302,6 +402,19 @@ export function Canvas({
               </svg>
             )}
 
+            {store.selectedElements.length > 1 &&
+              store.selectedElements.map((el) => {
+                const box = elementBox(el);
+                return (
+                  <div
+                    key={el.id}
+                    className="selection selection-multi"
+                    data-grouped={el.groupId ? true : undefined}
+                    style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
+                  />
+                );
+              })}
+
             {selected && selectionBox && (
               <div
                 className="selection"
@@ -346,6 +459,27 @@ export function Canvas({
         </div>
         <div className="watch-label">{spec.name} · {width}×{height}</div>
       </div>
+
+      {stray.length > 0 && (
+        <button
+          type="button"
+          className="btn btn-sm stage-rescue"
+          onClick={() => store.update((p) => bringOnScreen(p, spec))}
+          title="Move every element that sits outside the screen back into view"
+        >
+          <CollectIcon />
+          Bring {stray.length} {stray.length === 1 ? 'element' : 'elements'} into view
+        </button>
+      )}
+
+      {menuAt && (
+        <ContextMenu
+          x={menuAt.x}
+          y={menuAt.y}
+          entries={menuEntries()}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
     </div>
   );
 }

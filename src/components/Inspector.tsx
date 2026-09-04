@@ -38,7 +38,16 @@ import {
   TextField,
   ToggleField,
 } from './fields';
-import { DuplicateIcon, TrashIcon } from './icons';
+import {
+  DuplicateIcon,
+  EyeIcon,
+  EyeOffIcon,
+  GroupIcon,
+  LockIcon,
+  TrashIcon,
+  UngroupIcon,
+  UnlockIcon,
+} from './icons';
 
 type Patch = Partial<WatchElement>;
 
@@ -907,9 +916,112 @@ function TypeControls({ el, patch }: { el: WatchElement; patch: (p: Patch) => vo
   }
 }
 
+/**
+ * What the panel shows when several elements are selected. The per-element
+ * editors below all write one property of one element, so rather than guess at
+ * what a shared value means across ten element types, this offers the actions
+ * that read the same whatever is selected.
+ */
+function MultiSelection() {
+  const store = useStore();
+  const chosen = store.selectedElements;
+  const groups = new Set(chosen.map((el) => el.groupId).filter(Boolean));
+  const allGrouped = chosen.every((el) => el.groupId) && groups.size === 1;
+
+  return (
+    <div className="panel-scroll">
+      <div className="section-title">Selection</div>
+      <div className="multi-summary">
+        <strong>{chosen.length} elements selected</strong>
+        {allGrouped ?
+          'They are one group, so moving any of them moves the rest.'
+        : 'Drag any of them to move them together.'}
+      </div>
+
+      <div className="multi-names">
+        {chosen.map((el) => (
+          <button
+            type="button"
+            className="multi-chip"
+            key={el.id}
+            data-grouped={el.groupId ? true : undefined}
+            // Solo, so this reaches a member of a group. Selecting it any other
+            // way would take the group's siblings along with it.
+            onClick={() => store.select(el.id, { solo: true })}
+            title={`Edit ${el.name} on its own`}
+          >
+            {el.name}
+          </button>
+        ))}
+      </div>
+
+      <div className="section-title">Actions</div>
+      <div className="multi-actions">
+        <button
+          type="button"
+          className="btn btn-sm"
+          disabled={!store.canGroup}
+          onClick={store.groupSelection}
+        >
+          <GroupIcon />
+          Group
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm"
+          disabled={!store.canUngroup}
+          onClick={store.ungroupSelection}
+        >
+          <UngroupIcon />
+          Ungroup
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() =>
+            store.patchElements(
+              chosen.map((el) => ({ id: el.id, patch: { visible: !chosen.every((c) => c.visible) } })),
+            )
+          }
+        >
+          {chosen.every((c) => c.visible) ? <EyeOffIcon /> : <EyeIcon />}
+          {chosen.every((c) => c.visible) ? 'Hide all' : 'Show all'}
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() =>
+            store.patchElements(
+              chosen.map((el) => ({ id: el.id, patch: { locked: !chosen.every((c) => c.locked) } })),
+            )
+          }
+        >
+          {chosen.every((c) => c.locked) ? <UnlockIcon /> : <LockIcon />}
+          {chosen.every((c) => c.locked) ? 'Unlock all' : 'Lock all'}
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm btn-danger"
+          onClick={store.removeSelection}
+        >
+          <TrashIcon />
+          Delete all
+        </button>
+      </div>
+
+      <div className="field-hint">
+        Editing a property needs one element. Click a name above, or double-click one
+        on the watch.
+      </div>
+    </div>
+  );
+}
+
 export function Inspector() {
   const store = useStore();
   const el = store.selected;
+
+  if (store.selectedElements.length > 1) return <MultiSelection />;
 
   if (!el) {
     return (
@@ -933,6 +1045,13 @@ export function Inspector() {
 
   return (
     <div className="panel-scroll">
+      {el.groupId && (
+        <div className="callout">
+          <strong className="callout-title">One of a group</strong>
+          Editing this member on its own, so dragging it moves only it. Click away
+          and then any member to get the whole group back.
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         <input
           className="input"

@@ -83,6 +83,13 @@ interface ElementBase {
   y: number;
   visible: boolean;
   locked: boolean;
+  /**
+   * Elements sharing a groupId move as one: selecting any member selects them
+   * all. Optional because most elements are not grouped, and because schema 1
+   * documents predate it - absent reads the same as ungrouped, which is why
+   * opening one needs no conversion beyond stamping the new version.
+   */
+  groupId?: string;
 }
 
 /** Shared properties of every element that draws text into a box. */
@@ -338,10 +345,10 @@ export type WatchElement =
 
 export interface WatchfaceProject {
   /**
-   * Document format version. Stays at 1 until the app ships 1.0 - until then the
-   * format is still moving and a save that does not match is simply discarded.
+   * Document format version. 2 added element grouping; see SCHEMA_VERSION and
+   * READABLE_VERSIONS in store.tsx for which versions this build opens.
    */
-  schemaVersion: 1;
+  schemaVersion: 2;
   /** Which watch this face is laid out for. */
   platform: PlatformId;
   /** Human name; also becomes the CloudPebble project / app name. */

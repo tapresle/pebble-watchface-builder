@@ -661,6 +661,19 @@ a {
   overflow: auto;
   padding: 26px;
   min-height: 0;
+  /* Anchors the off-screen rescue button in the corner of the stage. */
+  position: relative;
+}
+
+/* Absolute, not a grid item. As a second child of the centring grid it took a
+   row of its own and shoved the watch up the pane every time an element went
+   astray - the button announcing the problem moved everything else to do it. */
+.stage-rescue {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 5;
+  box-shadow: var(--shadow);
 }
 
 .watch-shell {
@@ -698,6 +711,15 @@ a {
   color: var(--shell-label);
   text-transform: uppercase;
   font-weight: 700;
+}
+
+/* The canvas is a manipulation surface, not a document: a shift-click meant to
+   add to the selection would otherwise drag a text highlight across whatever
+   labels it passed over. */
+.canvas-root,
+.canvas-root * {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .canvas-root {
@@ -741,6 +763,15 @@ a {
   pointer-events: none;
   outline: 1px dashed var(--accent);
   outline-offset: 0;
+}
+/* Drawn per element when several are selected, where the single-selection
+   overlay with its resize handles would be ambiguous about what it resizes.
+   A grouped member gets a solid edge, so a group reads as one shape. */
+.selection-multi {
+  outline-style: dashed;
+}
+.selection-multi[data-grouped] {
+  outline-style: solid;
 }
 
 .handle {
@@ -1527,4 +1558,123 @@ a {
   .workspace {
     grid-template-columns: 236px 1fr 288px;
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Multiple selection and grouping
+ * ------------------------------------------------------------------ */
+
+.context-menu {
+  position: fixed;
+  z-index: 70;
+  min-width: 194px;
+  padding: 4px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 1px;
+}
+.context-menu-item {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.context-menu-item:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+.context-menu-item:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+.context-menu-item[data-danger]:hover:not(:disabled) {
+  color: var(--danger);
+}
+/* The glyph keeps its column when an item has none, so labels stay in line. */
+.context-menu-icon {
+  display: grid;
+  place-items: center;
+  color: var(--text-dim);
+}
+.context-menu-item:disabled .context-menu-icon {
+  color: inherit;
+}
+.context-menu-rule {
+  height: 1px;
+  margin: 3px 6px;
+  background: var(--border);
+}
+
+.layer-group-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 9px;
+}
+.layer-group-actions .btn {
+  flex: 1;
+}
+/* A grouped row carries a bar down its leading edge - the same signal the
+   canvas gives a grouped element with its solid outline. */
+.layer[data-grouped] {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.multi-summary {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.multi-summary strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.multi-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 9px;
+}
+/* A button, not a label: this is how a single element gets picked out of the
+   selection, which for a grouped one is otherwise only reachable by
+   double-clicking it on the watch. */
+.multi-chip {
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-dim);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.multi-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.multi-chip[data-grouped] {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.multi-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
 }
