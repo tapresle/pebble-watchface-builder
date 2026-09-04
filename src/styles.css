@@ -465,12 +465,15 @@ a:hover {
   gap: 6px;
 }
 
+/* Accented, the same as the headings in the device picker: these are the only
+   structure the panels have, and the color is what separates a heading from the
+   controls under it at this size. */
 .section-title {
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: var(--text-faint);
+  color: var(--accent-text);
   margin: 18px 0 9px;
 }
 /* Scoped to the panel itself: the element palette wraps each group in its own
@@ -1001,14 +1004,6 @@ a:hover {
   flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
-}
-
-/* Scoped to the picker rather than set on .section-title, which is the heading
-   for every panel in the app - the Inspector alone has some thirty of them, and
-   accenting the lot would spend the color on nothing in particular. Here there
-   are two, and they are the only structure the dialog has. */
-.device-group > .section-title {
-  color: var(--accent-text);
 }
 
 .device-card {
