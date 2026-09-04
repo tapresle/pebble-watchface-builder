@@ -30,6 +30,10 @@
   --shell-highlight: rgba(255, 255, 255, 0.06);
   --shell-label: #66707f;
   --screen-edge: rgba(255, 255, 255, 0.08);
+  /* The checkerboard behind an uploaded PNG, standing for transparency. Two
+     near-neighbours so it reads as texture rather than as pattern. */
+  --checker: #2a3340;
+  --checker-alt: #212936;
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   color-scheme: dark;
@@ -57,6 +61,8 @@
   --shell-highlight: rgba(255, 255, 255, 0.85);
   --shell-label: #7a7b7e;
   --screen-edge: rgba(0, 0, 0, 0.14);
+  --checker: #e9eaec;
+  --checker-alt: #dddee1;
   color-scheme: light;
 }
 
@@ -477,6 +483,9 @@ a:hover {
   margin-top: 0;
 }
 
+/* Sits on a panel, so it takes the raised surface rather than showing the panel
+   through - white in light mode, a step up from the panel in dark, the same as
+   .asset and the inputs. */
 .empty {
   color: var(--text-faint);
   font-size: 12px;
@@ -485,6 +494,7 @@ a:hover {
   padding: 26px 14px;
   border: 1px dashed var(--border);
   border-radius: var(--radius);
+  background: var(--bg-input);
 }
 
 /* ------------------------------------------------------------------ *
@@ -866,6 +876,22 @@ a:hover {
   padding: 28px;
 }
 
+/* Light mode runs the other way round from dark: gray holds the panels and
+   white sits on what you click, per the palette note up top. The dialog had it
+   backwards - a white sheet holding gray cards - so here the sheet takes the
+   gray and the cards take the white, matching the topbar and side panels.
+
+   The cards get it by redefining --bg-panel over the grid rather than by
+   restyling .device-card, which would outrank the selected card's accent-soft
+   background and flatten the selection. Dark mode already reads correctly and
+   is untouched. */
+:root[data-theme='light'] .modal {
+  background: var(--bg-panel);
+}
+:root[data-theme='light'] .device-grid {
+  --bg-panel: var(--bg-elevated);
+}
+
 .modal {
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
@@ -1014,9 +1040,13 @@ a:hover {
   align-items: center;
   justify-items: center;
 }
+/* The tint goes on as a layer over the card's own background rather than as the
+   background color, which being translucent would otherwise composite against
+   whatever sheet is behind the card - gray in light mode, which dragged the
+   selected card darker than its white neighbours and cost the badge its AA. */
 .device-card[data-selected='true'] {
   border-color: var(--accent);
-  background: var(--accent-soft);
+  background-image: linear-gradient(var(--accent-soft), var(--accent-soft));
 }
 
 /* The Current chip always drops onto its own line and every card reserves the
@@ -1042,10 +1072,9 @@ a:hover {
    selection that is not there.
 
    9.5px was small even for a badge; 11px reads more easily and stays clearly
-   subordinate to the 14px name above it. The size is not what gets this to AA
-   though: 4.5:1 applies to anything below 18.66px bold, so no sane badge size
-   reaches the 3:1 large-text bar. The contrast has to come from the color,
-   which is what the light-mode rule below is for. */
+   subordinate to the 14px name above it. The size buys no contrast relief -
+   4.5:1 applies to anything below 18.66px bold - so in light mode what carries
+   it to AA is the white card underneath, set where the modal is themed. */
 .device-badge {
   flex-basis: 100%;
   font-size: 11px;
@@ -1055,15 +1084,6 @@ a:hover {
   color: var(--accent-text);
 }
 
-/* --accent-text clears AA where it is mostly used - 4.7:1 on the group headings
-   against the modal - but the badge sits on the lighter card panel, where the
-   same red lands at 4.25:1, under the 4.5:1 this size needs. A shade darker
-   clears it without reading as a second red next to those headings. Scoped to
-   the badge rather than nudged in the token, which every accent-colored string
-   in the app shares. Dark mode is already past 7:1 and is left alone. */
-:root[data-theme='light'] .device-badge {
-  color: #cc3520;
-}
 .device-specs {
   display: grid;
   gap: 3px;
@@ -1255,7 +1275,10 @@ a:hover {
 .callout {
   border: 1px solid var(--border);
   border-left: 3px solid var(--info);
-  background: var(--bg-panel);
+  /* --bg-panel is what the panels and the dialog sheet are, so a callout in
+     either was the same value as its own background and read only by its
+     border. The raised surface separates it. */
+  background: var(--bg-input);
   border-radius: var(--radius-sm);
   padding: 11px 13px;
   margin: 12px 0;
@@ -1303,7 +1326,8 @@ a:hover {
   color: var(--text-faint);
 }
 .asset-preview {
-  background: repeating-conic-gradient(#2a3340 0% 25%, #212936 0% 50%) 50% / 12px 12px;
+  background: repeating-conic-gradient(var(--checker) 0% 25%, var(--checker-alt) 0% 50%) 50% /
+    12px 12px;
   border-radius: 5px;
   padding: 8px;
   display: grid;
@@ -1311,7 +1335,9 @@ a:hover {
   margin-bottom: 8px;
 }
 
+/* Raised off the panel like .empty above. */
 .dropzone {
+  background: var(--bg-input);
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius);
   padding: 20px 14px;
@@ -1326,7 +1352,7 @@ a:hover {
 .dropzone[data-active='true'] {
   border-color: var(--accent);
   color: var(--text);
-  background: var(--accent-soft);
+  background-image: linear-gradient(var(--accent-soft), var(--accent-soft));
 }
 
 .warning-bar {
