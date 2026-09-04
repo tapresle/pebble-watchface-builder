@@ -289,9 +289,9 @@ export interface PlatformGroup {
 
 /*
  * How the watches divide: Core Devices' current three, then the four legacy
- * ones in release order. The picker draws each group as its own row of cards,
- * so this is what keeps a legacy watch from wrapping up alongside a current one
- * at some window width.
+ * ones. Both groups run oldest to newest by release date. The picker draws each
+ * group as its own row of cards, so this is what keeps a legacy watch from
+ * wrapping up alongside a current one at some window width.
  *
  * It lives here rather than in the picker because it is a fact about the
  * hardware, not about the layout, and PLATFORM_LIST is built from it below so
@@ -301,14 +301,14 @@ export const PLATFORM_GROUPS: PlatformGroup[] = [
   // Named for the maker, not "Current": a card already wears a Current badge
   // when it is the watch you are designing for, and one word meaning two things
   // one line apart is worse than a label that is merely less parallel.
-  { label: 'Core Devices', platforms: [PEBBLE_TIME_2, CORE_2_DUO, PEBBLE_ROUND_2] },
+  { label: 'Core Devices', platforms: [CORE_2_DUO, PEBBLE_TIME_2, PEBBLE_ROUND_2] },
   {
     label: 'Legacy',
     platforms: [PEBBLE_CLASSIC, PEBBLE_TIME, PEBBLE_TIME_ROUND, PEBBLE_2],
   },
 ];
 
-/** Every watch, current first, then legacy - the order the groups are in. */
+/** Every watch, current first, then legacy, each group oldest to newest. */
 export const PLATFORM_LIST: PlatformSpec[] = PLATFORM_GROUPS.flatMap((g) => g.platforms);
 
 export const DEFAULT_PLATFORM: PlatformId = 'emery';
