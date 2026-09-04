@@ -281,21 +281,35 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
   diorite: PEBBLE_2,
 };
 
+export interface PlatformGroup {
+  /** Heading the device picker puts above the group. */
+  label: string;
+  platforms: PlatformSpec[];
+}
+
 /*
- * The three current Core Devices watches, then the four legacy ones in release
- * order. Three and four no longer divide evenly across any one row count, so
- * the picker's rows have stopped being one group each - the order still reads
- * that way top to bottom, which is what the list is for.
+ * How the watches divide: Core Devices' current three, then the four legacy
+ * ones in release order. The picker draws each group as its own row of cards,
+ * so this is what keeps a legacy watch from wrapping up alongside a current one
+ * at some window width.
+ *
+ * It lives here rather than in the picker because it is a fact about the
+ * hardware, not about the layout, and PLATFORM_LIST is built from it below so
+ * the two cannot drift apart.
  */
-export const PLATFORM_LIST: PlatformSpec[] = [
-  PEBBLE_TIME_2,
-  CORE_2_DUO,
-  PEBBLE_ROUND_2,
-  PEBBLE_CLASSIC,
-  PEBBLE_TIME,
-  PEBBLE_TIME_ROUND,
-  PEBBLE_2,
+export const PLATFORM_GROUPS: PlatformGroup[] = [
+  // Named for the maker, not "Current": a card already wears a Current badge
+  // when it is the watch you are designing for, and one word meaning two things
+  // one line apart is worse than a label that is merely less parallel.
+  { label: 'Core Devices', platforms: [PEBBLE_TIME_2, CORE_2_DUO, PEBBLE_ROUND_2] },
+  {
+    label: 'Legacy',
+    platforms: [PEBBLE_CLASSIC, PEBBLE_TIME, PEBBLE_TIME_ROUND, PEBBLE_2],
+  },
 ];
+
+/** Every watch, current first, then legacy - the order the groups are in. */
+export const PLATFORM_LIST: PlatformSpec[] = PLATFORM_GROUPS.flatMap((g) => g.platforms);
 
 export const DEFAULT_PLATFORM: PlatformId = 'emery';
 
