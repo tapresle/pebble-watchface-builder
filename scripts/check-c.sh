@@ -11,7 +11,7 @@ trap 'rm -rf "$work"' EXIT
 npx esbuild "$root/scripts/emit-fixture.ts" --bundle --platform=node --format=esm \
   --log-level=warning --outfile="$work/emit.mjs"
 
-for platform in emery flint gabbro basalt chalk diorite; do
+for platform in emery flint gabbro aplite basalt chalk diorite; do
   node "$work/emit.mjs" c "$platform" > "$work/generated-$platform.c"
   node "$work/emit.mjs" json "$platform" > "$work/package-$platform.json"
   node -e "
@@ -36,7 +36,7 @@ for platform in emery flint gabbro basalt chalk diorite; do
 done
 
 # A 1-bit target must never emit a color expression it cannot represent.
-for platform in flint diorite; do
+for platform in flint aplite diorite; do
   if grep -q 'GColorFromRGB' "$work/generated-$platform.c"; then
     echo "$platform: unexpected GColorFromRGB in a black-and-white build" >&2
     exit 1
