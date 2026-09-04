@@ -877,14 +877,13 @@ a:hover {
 .modal[data-size='sm'] {
   width: min(460px, 100%);
 }
-/* Sized to the device picker, its only user. One row per watch stopped scaling
-   at six: fitting them all across needs ~1120px, which a 1024px laptop does not
-   have, and it degrades to a row of five plus an orphan. Three to a row instead,
-   which is what PLATFORM_LIST is ordered for - current watches, then legacy - and
-   which stays balanced all the way down: 3+3, then 2+2+2, then one column on a
-   phone. Widen this only to a number that still divides six. */
+/* Sized to the device picker, its only user. Picking a width whose row count
+   divides the watch count evenly worked for five and six and has run out at
+   seven, which no row count splits. So the grid centers its last row instead
+   (see .device-grid) and this width just buys the roomier of the two shapes:
+   four then three, rather than the three rows a narrower modal would take. */
 .modal[data-size='md'] {
-  width: min(720px, 100%);
+  width: min(900px, 100%);
 }
 .modal[data-size='lg'] {
   width: min(1080px, 100%);
@@ -949,18 +948,27 @@ a:hover {
  * Device picker
  * ------------------------------------------------------------------ */
 
-/* Auto-fit rather than a fixed column count, so a watch added to PLATFORM_LIST
-   wraps to another row instead of being squeezed. The minimum is the widest
-   preview - the Round 2's case at PREVIEW_SCALE - plus the card's padding, so a
-   column is never narrower than the watch standing in it. Three fit across the
-   desktop modal; a phone gets a single column rather than a clipped preview. */
+/* A wrapping flex row rather than an auto-fit grid. Seven is the first count no
+   row length divides evenly - four leaves three over, three leaves one - and a
+   grid strands that remainder against the left edge, which reads as a card
+   missing from the row rather than as the end of the list. Flex centers a short
+   last row, so it reads as deliberate at every count.
+
+   Cards are a fixed width rather than 1fr because flex distributes free space
+   per row: letting them grow would make the last row's few cards wider than the
+   full rows above. Fixed keeps every card identical and pays for it with a
+   little air at the ends of a row, which the centering makes look intended. The
+   width covers the widest preview, the Round 2's case at PREVIEW_SCALE, plus
+   the card's padding, so a card is never narrower than the watch inside it. */
 .device-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
 }
 
 .device-card {
+  flex: 0 0 200px;
   display: grid;
   /* Fixed tracks, so the same row in each card sits at the same height. */
   grid-template-rows: auto auto 1fr;

@@ -3,10 +3,18 @@
  *
  * Everything platform-specific is funnelled through this module: screen size,
  * screen shape, how many colors the panel can show, and which SDK platform slug
- * the export targets. Adding Aplite later means adding an entry to PLATFORMS.
+ * the export targets. With Aplite in, this is every platform the Pebble SDK
+ * builds for.
  */
 
-export type PlatformId = 'emery' | 'flint' | 'gabbro' | 'diorite' | 'chalk' | 'basalt';
+export type PlatformId =
+  | 'emery'
+  | 'flint'
+  | 'gabbro'
+  | 'aplite'
+  | 'basalt'
+  | 'chalk'
+  | 'diorite';
 
 export interface PlatformSpec {
   id: PlatformId;
@@ -138,9 +146,47 @@ export const PEBBLE_ROUND_2: PlatformSpec = {
 /* ------------------------------------------------------------------ *
  * The legacy watches, in release order
  *
- * All three predate Core Devices and none is still made, but the SDK builds
+ * All four predate Core Devices and none is still made, but the SDK builds
  * for them and plenty are still on wrists.
  * ------------------------------------------------------------------ */
+
+/*
+ * The one that started it all, and the only 1-bit watch here with a
+ * magnetometer - the Pebble 2 dropped it three years later.
+ *
+ * Named Pebble Classic rather than plain Pebble, which is what it was actually
+ * sold as. Every other name in this file is the name on the box, but "Pebble"
+ * alone in a list that also holds a Pebble 2 and a Pebble Time reads as a
+ * category rather than a watch, and it leaves every warning string ambiguous.
+ * The retronym is what the community settled on for the same reason.
+ *
+ * The Kickstarter Pebble and the Pebble Steel share the aplite slug the way the
+ * Time and the Time Steel share basalt: the case differs, nothing a watchface
+ * can see does, so the preview draws the plastic original.
+ *
+ * Health is the one open question, and it is deliberately not answered here.
+ * The generated C wraps every step and heart rate read in
+ * #if defined(PBL_HEALTH), so a step counter compiles either way and simply
+ * draws nothing on a firmware with no health service. That guard, rather than a
+ * capability flag whose value would be a guess, is what keeps this honest.
+ */
+export const PEBBLE_CLASSIC: PlatformSpec = {
+  id: 'aplite',
+  name: 'Pebble Classic',
+  sdkPlatform: 'aplite',
+  width: 144,
+  height: 168,
+  shape: 'rect',
+  screenRadius: 8,
+  bezel: 24,
+  colorMode: 'bw',
+  colorCount: 2,
+  palette: MONO_PALETTE,
+  paletteColumns: 2,
+  shell: 'plastic',
+  hasHeartRate: false,
+  hasCompass: true,
+};
 
 /*
  * The Pebble Time started the color line in 2015: the same 144x168 panel as the
@@ -229,20 +275,23 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
   emery: PEBBLE_TIME_2,
   flint: CORE_2_DUO,
   gabbro: PEBBLE_ROUND_2,
+  aplite: PEBBLE_CLASSIC,
   basalt: PEBBLE_TIME,
   chalk: PEBBLE_TIME_ROUND,
   diorite: PEBBLE_2,
 };
 
 /*
- * The three current Core Devices watches, then the three legacy ones in release
- * order. The device picker lays this out three to a row, so each row is one of
- * those groups rather than an arbitrary slice of six.
+ * The three current Core Devices watches, then the four legacy ones in release
+ * order. Three and four no longer divide evenly across any one row count, so
+ * the picker's rows have stopped being one group each - the order still reads
+ * that way top to bottom, which is what the list is for.
  */
 export const PLATFORM_LIST: PlatformSpec[] = [
   PEBBLE_TIME_2,
   CORE_2_DUO,
   PEBBLE_ROUND_2,
+  PEBBLE_CLASSIC,
   PEBBLE_TIME,
   PEBBLE_TIME_ROUND,
   PEBBLE_2,
