@@ -3,3 +3,8 @@ dist/
 .DS_Store
 *.local
 .claude/
+# tsc -b writes these next to the sources if it is ever told to emit; they are
+# build output either way and must not be committed over the real files.
+src/**/*.js
+vite.config.js
+*.tsbuildinfo

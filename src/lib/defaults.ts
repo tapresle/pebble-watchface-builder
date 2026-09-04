@@ -280,7 +280,7 @@ export function createStarterProject(platform: PlatformId = 'emery'): WatchfaceP
   addCentered('batteryBar', rowY(0.74));
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     platform: spec.id,
     name: 'My Watchface',
     author: 'Me',

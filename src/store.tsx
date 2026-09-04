@@ -30,8 +30,16 @@ import { convertProjectToPlatform } from './lib/platformConvert';
 import { clamp } from './lib/utils';
 
 const STORAGE_KEY = 'pebble-watchface-builder/project/v1';
-/** Do not bump before the 1.0 release; see WatchfaceProject.schemaVersion. */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+/**
+ * Versions this build can open. 2 added the optional groupId on elements, which
+ * is purely additive - a 1 document has no groups, which reads identically to
+ * every element being ungrouped - so opening one needs nothing but the new
+ * stamp. Anything older than the oldest entry here is refused rather than
+ * guessed at, which is what keeps a half-understood document from being
+ * silently rewritten on the next autosave.
+ */
+const READABLE_VERSIONS = [1, 2];
 const HISTORY_LIMIT = 60;
 
 export interface UpdateOptions {
@@ -45,14 +53,33 @@ export interface Store {
   spec: PlatformSpec;
   /** True on a first visit with nothing saved, so the device picker opens. */
   needsDeviceChoice: boolean;
-  selectedId: string | null;
+  /** Every selected element, in the order they were added to the selection. */
+  selectedIds: string[];
+  selectedElements: WatchElement[];
+  /**
+   * The selected element when exactly one is - null for none and for several.
+   * The inspector edits one element at a time, and the canvas only offers
+   * resize handles when there is a single unambiguous target.
+   */
   selected: WatchElement | null;
   preview: PreviewState;
   storageWarning: string | null;
   canUndo: boolean;
   canRedo: boolean;
 
-  select(id: string | null): void;
+  /**
+   * Select an element, or pass null to clear. `additive` toggles it in and out
+   * of the current selection instead of replacing it. Either way the selection
+   * is widened to whole groups: picking one member picks its siblings, which is
+   * what makes a group move as one.
+   *
+   * `solo` skips that widening and selects the one element even inside a group,
+   * which is how a member gets edited on its own - otherwise a grouped element
+   * could never be reached, since every route to it selects its siblings too.
+   */
+  select(id: string | null, opts?: { additive?: boolean; solo?: boolean }): void;
+  /** Replace the selection outright, widened to whole groups as above. */
+  setSelection(ids: string[]): void;
   setPreview(patch: Partial<PreviewState>): void;
   update(fn: (project: WatchfaceProject) => WatchfaceProject, opts?: UpdateOptions): void;
   /** Throw the current design away and start a fresh one for `platform`. */
@@ -65,7 +92,25 @@ export interface Store {
 
   addElement(element: WatchElement): void;
   patchElement(id: string, patch: Partial<WatchElement>, opts?: UpdateOptions): void;
+  /**
+   * Apply a different patch to each of several elements in one update, so a
+   * drag over a multiple selection is a single history entry and a single
+   * render rather than one per element.
+   */
+  patchElements(
+    updates: { id: string; patch: Partial<WatchElement> }[],
+    opts?: UpdateOptions,
+  ): void;
   removeElement(id: string): void;
+  /** Delete everything selected. */
+  removeSelection(): void;
+  /** Put the whole selection in one group. Needs two or more selected. */
+  groupSelection(): void;
+  /** Dissolve the groups of everything selected. */
+  ungroupSelection(): void;
+  /** Whether the selection is groupable / ungroupable, for menus and buttons. */
+  canGroup: boolean;
+  canUngroup: boolean;
   duplicateElement(id: string): void;
   moveElement(id: string, direction: 'up' | 'down' | 'top' | 'bottom'): void;
   /** Move an element to a gap in the list, indexed 0..length as it stands now. */
@@ -92,17 +137,36 @@ type SavedDoc = Omit<Partial<WatchfaceProject>, 'schemaVersion' | 'platform'> & 
 };
 
 /**
+ * A group of one is the same thing as no group, and it is what a group is left
+ * as once its other members are deleted. Dropping those keeps the rest of the
+ * app from having to treat a lone "grouped" element as a special case.
+ */
+function dropLoneGroups(elements: WatchElement[]): WatchElement[] {
+  const counts = new Map<string, number>();
+  for (const el of elements) {
+    if (el.groupId) counts.set(el.groupId, (counts.get(el.groupId) ?? 0) + 1);
+  }
+  if (![...counts.values()].some((n) => n < 2)) return elements;
+  return elements.map((el) =>
+    el.groupId && counts.get(el.groupId)! < 2 ? { ...el, groupId: undefined } : el,
+  );
+}
+
+/**
  * Reads a saved document, or returns null when it is not one we understand, so
  * the caller can fall back to the first-run flow.
  *
- * Only the current schema is accepted. Nothing has shipped, so there are no old
- * documents in the world to convert, and pretending to accept one would mean
- * silently dropping any element whose shape has since changed.
+ * Every version in READABLE_VERSIONS is accepted and comes back stamped as the
+ * current one, so the next autosave writes the current format. There is no
+ * per-version conversion step because the only change so far has been an
+ * optional field; the day one is needed, it belongs here between the version
+ * check and the merge below.
  */
 export function readProject(raw: unknown): WatchfaceProject | null {
   if (!raw || typeof raw !== 'object') return null;
   const doc = raw as SavedDoc;
-  if (doc.schemaVersion !== SCHEMA_VERSION) return null;
+  if (typeof doc.schemaVersion !== 'number') return null;
+  if (!READABLE_VERSIONS.includes(doc.schemaVersion)) return null;
   if (!Array.isArray(doc.elements)) return null;
 
   const platform: PlatformId =
@@ -114,7 +178,9 @@ export function readProject(raw: unknown): WatchfaceProject | null {
   return {
     ...starter,
     ...doc,
+    schemaVersion: SCHEMA_VERSION,
     platform,
+    elements: dropLoneGroups(doc.elements as WatchElement[]),
     options: { ...starter.options, ...doc.options },
   } as WatchfaceProject;
 }
@@ -164,7 +230,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [initial] = useState(loadInitialProject);
   const [project, setProjectState] = useState<WatchfaceProject>(initial.project);
   const [needsDeviceChoice, setNeedsDeviceChoice] = useState(!initial.restored);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [preview, setPreviewState] = useState<PreviewState>(defaultPreview);
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
   const past = useRef<WatchfaceProject[]>([]);
@@ -220,7 +286,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (next) => {
       pushHistory(projectRef.current);
       commit(next);
-      setSelectedId(null);
+      setSelectedIds([]);
     },
     [commit, pushHistory],
   );
@@ -243,7 +309,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     commit(next);
   }, [commit]);
 
+  /**
+   * Widen a set of ids to include every sibling of any group it touches. A
+   * group is only ever selected whole, which is what lets the canvas treat the
+   * selection as one thing to drag.
+   */
+  const widenToGroups = useCallback((ids: string[], elements: WatchElement[]): string[] => {
+    const byId = new Map(elements.map((el) => [el.id, el]));
+    const groups = new Set<string>();
+    for (const id of ids) {
+      const groupId = byId.get(id)?.groupId;
+      if (groupId) groups.add(groupId);
+    }
+    if (groups.size === 0) return ids.filter((id) => byId.has(id));
+    const out: string[] = [];
+    const seen = new Set<string>();
+    const add = (id: string) => {
+      if (!seen.has(id) && byId.has(id)) {
+        seen.add(id);
+        out.push(id);
+      }
+    };
+    for (const id of ids) {
+      add(id);
+      const groupId = byId.get(id)?.groupId;
+      if (groupId) for (const el of elements) if (el.groupId === groupId) add(el.id);
+    }
+    return out;
+  }, []);
+
   const store = useMemo<Store>(() => {
+    const elements = project.elements;
+    const selectedElements = selectedIds
+      .map((id) => elements.find((el) => el.id === id))
+      .filter((el): el is WatchElement => el !== undefined);
+
     const mapElements = (
       fn: (elements: WatchElement[]) => WatchElement[],
       opts?: UpdateOptions,
@@ -253,14 +353,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       project,
       spec: platformSpec(project.platform),
       needsDeviceChoice,
-      selectedId,
-      selected: project.elements.find((el) => el.id === selectedId) ?? null,
+      selectedIds,
+      selectedElements,
+      selected: selectedElements.length === 1 ? selectedElements[0]! : null,
       preview,
       storageWarning,
       canUndo: past.current.length > 0,
       canRedo: future.current.length > 0,
 
-      select: setSelectedId,
+      canGroup:
+        selectedElements.length > 1 &&
+        // Already one whole group and nothing else? Then there is nothing to do.
+        !(
+          selectedElements[0]!.groupId !== undefined &&
+          selectedElements.every((el) => el.groupId === selectedElements[0]!.groupId)
+        ),
+      canUngroup: selectedElements.some((el) => el.groupId !== undefined),
+
+      select: (id, opts) => {
+        if (id === null) {
+          setSelectedIds([]);
+          return;
+        }
+        if (opts?.solo) {
+          setSelectedIds(elements.some((el) => el.id === id) ? [id] : []);
+          return;
+        }
+        setSelectedIds((current) => {
+          if (!opts?.additive) return widenToGroups([id], elements);
+          // Toggling a grouped element takes its siblings with it, in or out.
+          const touched = new Set(widenToGroups([id], elements));
+          const alreadyIn = current.includes(id);
+          const next = alreadyIn ?
+            current.filter((existing) => !touched.has(existing))
+          : [...current, ...[...touched].filter((add) => !current.includes(add))];
+          return widenToGroups(next, elements);
+        });
+      },
+      setSelection: (ids) => setSelectedIds(widenToGroups(ids, elements)),
       setPreview: (patch) => setPreviewState((p) => ({ ...p, ...patch })),
       update,
       beginHistory,
@@ -278,7 +408,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       addElement: (element) => {
         mapElements((els) => [...els, element]);
-        setSelectedId(element.id);
+        setSelectedIds([element.id]);
       },
 
       patchElement: (id, patch, opts) =>
@@ -287,9 +417,55 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           opts,
         ),
 
+      patchElements: (updates, opts) => {
+        if (updates.length === 0) return;
+        const byId = new Map(updates.map((u) => [u.id, u.patch]));
+        mapElements(
+          (els) =>
+            els.map((el) => {
+              const patch = byId.get(el.id);
+              return patch ? ({ ...el, ...patch } as WatchElement) : el;
+            }),
+          opts,
+        );
+      },
+
       removeElement: (id) => {
-        mapElements((els) => els.filter((el) => el.id !== id));
-        setSelectedId((current) => (current === id ? null : current));
+        mapElements((els) => dropLoneGroups(els.filter((el) => el.id !== id)));
+        setSelectedIds((current) => current.filter((existing) => existing !== id));
+      },
+
+      removeSelection: () => {
+        if (selectedIds.length === 0) return;
+        const doomed = new Set(selectedIds);
+        mapElements((els) => dropLoneGroups(els.filter((el) => !doomed.has(el.id))));
+        setSelectedIds([]);
+      },
+
+      groupSelection: () => {
+        if (selectedIds.length < 2) return;
+        const groupId = `g_${Math.random().toString(36).slice(2, 8)}`;
+        const members = new Set(selectedIds);
+        mapElements((els) =>
+          els.map((el) => (members.has(el.id) ? ({ ...el, groupId } as WatchElement) : el)),
+        );
+      },
+
+      ungroupSelection: () => {
+        // Dissolve whole groups, not just the members that happen to be
+        // selected - the selection is always widened to whole groups anyway,
+        // and a half-dissolved group is not a state worth being able to reach.
+        const groups = new Set(
+          selectedElements.map((el) => el.groupId).filter((id): id is string => id !== undefined),
+        );
+        if (groups.size === 0) return;
+        mapElements((els) =>
+          els.map((el) =>
+            el.groupId && groups.has(el.groupId) ?
+              ({ ...el, groupId: undefined } as WatchElement)
+            : el,
+          ),
+        );
       },
 
       duplicateElement: (id) => {
@@ -301,9 +477,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           name: `${source.name} copy`,
           x: source.x + 4,
           y: source.y + 4,
+          // A copy stands on its own; joining the original's group would mean
+          // duplicating one element silently enlarged the group.
+          groupId: undefined,
         };
         mapElements((els) => [...els, copy]);
-        setSelectedId(copy.id);
+        setSelectedIds([copy.id]);
       },
 
       moveElement: (id, direction) =>
@@ -357,7 +536,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       redo,
     };
     // historyTick is a dependency so canUndo/canRedo stay in sync with the refs.
-  }, [project, needsDeviceChoice, selectedId, preview, storageWarning, historyTick, update, beginHistory, replaceProject, undo, redo]);
+  }, [project, needsDeviceChoice, selectedIds, preview, storageWarning, historyTick, update, beginHistory, replaceProject, undo, redo, widenToGroups]);
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
 }

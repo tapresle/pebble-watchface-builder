@@ -63,6 +63,88 @@ function fitToScreen(el: WatchElement, spec: PlatformSpec): { x: number; y: numb
   return { x: left + offsetX, y: top + offsetY };
 }
 
+/**
+ * Elements sitting where the watch cannot show them - the same test the device
+ * switch uses, so "off screen" means one thing across the app: somewhere
+ * fitToScreen would have to move it.
+ */
+export function offScreenElements(
+  project: WatchfaceProject,
+  spec: PlatformSpec,
+): WatchElement[] {
+  return project.elements.filter((el) => {
+    const fitted = fitToScreen(el, spec);
+    return fitted.x !== el.x || fitted.y !== el.y;
+  });
+}
+
+/**
+ * Put a stray element back in the middle of the screen.
+ *
+ * Not the nearest legal spot: fitToScreen only guarantees EDGE_MARGIN of an
+ * element stays on, which for something dragged a long way off returns it as a
+ * sliver against the edge - technically rescued, still unusable. The centre is
+ * somewhere you can always see the whole thing and drag it on from there.
+ */
+function centerOnScreen(el: WatchElement, spec: PlatformSpec): { x: number; y: number } {
+  const box = elementBox(el);
+  // x/y are the element's own anchor and the drawn box can sit elsewhere, so
+  // the shift is applied through that offset rather than assigning directly.
+  return {
+    x: Math.round((spec.width - box.w) / 2) + (el.x - box.x),
+    y: Math.round((spec.height - box.h) / 2) + (el.y - box.y),
+  };
+}
+
+/**
+ * Collect every stray element in the middle of the screen, leaving the rest
+ * alone.
+ *
+ * A group moves as one: the shift that centres the group's bounding box is
+ * applied to all of its members, so the group keeps its shape. Centring each
+ * member separately would stack them on top of each other, which for the one
+ * feature built to keep elements together would be a strange way to behave.
+ */
+export function bringOnScreen(
+  project: WatchfaceProject,
+  spec: PlatformSpec,
+): WatchfaceProject {
+  const stray = new Set(offScreenElements(project, spec).map((el) => el.id));
+  if (stray.size === 0) return project;
+
+  // One shift per group that has anything stray in it, from the group's box.
+  const groupShifts = new Map<string, { dx: number; dy: number }>();
+  const groupIds = new Set(
+    project.elements
+      .filter((el) => stray.has(el.id) && el.groupId)
+      .map((el) => el.groupId as string),
+  );
+  for (const groupId of groupIds) {
+    const members = project.elements.filter((el) => el.groupId === groupId);
+    const boxes = members.map((el) => elementBox(el));
+    const left = Math.min(...boxes.map((b) => b.x));
+    const top = Math.min(...boxes.map((b) => b.y));
+    const right = Math.max(...boxes.map((b) => b.x + b.w));
+    const bottom = Math.max(...boxes.map((b) => b.y + b.h));
+    groupShifts.set(groupId, {
+      dx: Math.round((spec.width - (right - left)) / 2) - left,
+      dy: Math.round((spec.height - (bottom - top)) / 2) - top,
+    });
+  }
+
+  return {
+    ...project,
+    elements: project.elements.map((el) => {
+      const shift = el.groupId ? groupShifts.get(el.groupId) : undefined;
+      // A whole group moves when any member of it is stray, so that a group
+      // half off the screen arrives intact rather than torn in two.
+      if (shift) return { ...el, x: el.x + shift.dx, y: el.y + shift.dy } as WatchElement;
+      if (!stray.has(el.id)) return el;
+      return { ...el, ...centerOnScreen(el, spec) } as WatchElement;
+    }),
+  };
+}
+
 const isColorKey = (key: string) => key === 'color' || key.endsWith('Color');
 const isHex = (value: unknown): value is string =>
   typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);

@@ -4,7 +4,7 @@
 import { useRef, useState } from 'react';
 import { useStore } from '../store';
 import { ELEMENT_KINDS } from '../lib/defaults';
-import { EyeIcon, EyeOffIcon, LockIcon, UnlockIcon } from './icons';
+import { EyeIcon, EyeOffIcon, GroupIcon, LockIcon, UngroupIcon, UnlockIcon } from './icons';
 
 const typeLabel = (type: string): string =>
   ELEMENT_KINDS.find((k) => k.type === type)?.label ?? type;
@@ -96,7 +96,31 @@ export function LayersPanel() {
       <div className="section-title">Layers - top first</div>
       <p className="field-hint" style={{ marginBottom: 4 }}>
         Drag to reorder. Items higher in this list are drawn later, so they cover the ones below.
+        Shift-click to select more than one.
       </p>
+
+      <div className="layer-group-actions">
+        <button
+          type="button"
+          className="btn btn-sm"
+          disabled={!store.canGroup}
+          onClick={store.groupSelection}
+          title="Group the selection so they move together"
+        >
+          <GroupIcon />
+          Group
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm"
+          disabled={!store.canUngroup}
+          onClick={store.ungroupSelection}
+          title="Break the selection's group apart"
+        >
+          <UngroupIcon />
+          Ungroup
+        </button>
+      </div>
 
       <div
         className="layer-dropfield"
@@ -131,7 +155,9 @@ export function LayersPanel() {
                 rowRefs.current[visualIndex] = node;
               }}
               className="layer"
-              data-selected={el.id === store.selectedId}
+              data-selected={store.selectedIds.includes(el.id)}
+              data-grouped={el.groupId ? true : undefined}
+              title={el.groupId ? 'Grouped - selecting this selects the rest of its group' : undefined}
               data-dragging={dragId === el.id}
               draggable
               onDragStart={(e) => {
@@ -140,7 +166,7 @@ export function LayersPanel() {
                 e.dataTransfer.setData(LAYER_MIME, el.id);
               }}
               onDragEnd={clearDrag}
-              onClick={() => store.select(el.id)}
+              onClick={(e) => store.select(el.id, { additive: e.shiftKey || e.metaKey || e.ctrlKey })}
             >
               <span className="layer-grip" aria-hidden>
                 ⣿

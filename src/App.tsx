@@ -119,19 +119,15 @@ function useShortcuts() {
       }
       if (typing) return;
 
-      const el = store.selected;
-      if (!el) return;
+      const chosen = store.selectedElements;
+      if (chosen.length === 0) return;
 
-      if (mod && e.key.toLowerCase() === 'd') {
-        e.preventDefault();
-        store.duplicateElement(el.id);
-        return;
-      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
-        store.removeElement(el.id);
+        store.removeSelection();
         return;
       }
+
       const step = e.shiftKey ? 10 : 1;
       const nudge: Record<string, [number, number]> = {
         ArrowLeft: [-step, 0],
@@ -140,9 +136,26 @@ function useShortcuts() {
         ArrowDown: [0, step],
       };
       const delta = nudge[e.key];
-      if (delta && !el.locked) {
+      if (delta) {
+        const movable = chosen.filter((item) => !item.locked);
+        if (movable.length === 0) return;
         e.preventDefault();
-        store.patchElement(el.id, { x: el.x + delta[0], y: el.y + delta[1] });
+        store.patchElements(
+          movable.map((item) => ({
+            id: item.id,
+            patch: { x: item.x + delta[0], y: item.y + delta[1] },
+          })),
+        );
+        return;
+      }
+
+      // Duplicating several at once would need copies to keep their grouping,
+      // which is a bigger question than this shortcut; one at a time for now.
+      const el = store.selected;
+      if (!el) return;
+      if (mod && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        store.duplicateElement(el.id);
       }
     };
     window.addEventListener('keydown', onKey);

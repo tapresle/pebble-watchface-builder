@@ -8,11 +8,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit false --pretty",
+    "typecheck": "tsc -b --pretty",
     "check:c": "bash scripts/check-c.sh",
-    "verify": "tsc -b && bash scripts/check-text.sh && bash scripts/check-icons.sh && bash scripts/check-c.sh && vite build",
+    "verify": "tsc -b && bash scripts/check-text.sh && bash scripts/check-icons.sh && bash scripts/check-schema.sh && bash scripts/check-c.sh && vite build",
     "check:text": "bash scripts/check-text.sh",
-    "check:icons": "bash scripts/check-icons.sh"
+    "check:icons": "bash scripts/check-icons.sh",
+    "check:schema": "bash scripts/check-schema.sh"
   },
   "dependencies": {
     "react": "^18.3.1",
