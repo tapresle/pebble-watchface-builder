@@ -288,22 +288,24 @@ export interface PlatformGroup {
 }
 
 /*
- * How the watches divide: Core Devices' current three, then the four legacy
- * ones. Both groups run oldest to newest by release date. The picker draws each
- * group as its own row of cards, so this is what keeps a legacy watch from
- * wrapping up alongside a current one at some window width.
+ * How the watches divide: Core Devices' three, then the four Pebble Technology
+ * Corporation built before it folded. Both groups run oldest to newest by
+ * release date. The picker draws each group as its own row of cards, so this is
+ * what keeps one maker's watch from wrapping up alongside the other's at some
+ * window width.
  *
  * It lives here rather than in the picker because it is a fact about the
  * hardware, not about the layout, and PLATFORM_LIST is built from it below so
  * the two cannot drift apart.
  */
 export const PLATFORM_GROUPS: PlatformGroup[] = [
-  // Named for the maker, not "Current": a card already wears a Current badge
-  // when it is the watch you are designing for, and one word meaning two things
-  // one line apart is worse than a label that is merely less parallel.
+  // Both groups are named for who built the watches, the way the official
+  // hardware page splits them. That also keeps the first group off the word
+  // Current, which a card already wears as a badge when it is the watch being
+  // designed for.
   { label: 'Core Devices', platforms: [CORE_2_DUO, PEBBLE_TIME_2, PEBBLE_ROUND_2] },
   {
-    label: 'Legacy',
+    label: 'Pebble Technology Corporation',
     platforms: [PEBBLE_CLASSIC, PEBBLE_TIME, PEBBLE_TIME_ROUND, PEBBLE_2],
   },
 ];

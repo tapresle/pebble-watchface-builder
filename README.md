@@ -24,8 +24,8 @@ fetched from anywhere else is the Buy Me a Coffee button in the corner.
 | Pebble Time Round | `chalk` | 180×180, round | 64 |
 | Pebble 2 | `diorite` | 144×168 | black and white |
 
-The first three are Core Devices' current watches; the rest are legacy. Both groups run
-oldest to newest by release date.
+The first three are Core Devices' watches; the rest are the ones Pebble Technology
+Corporation built before it folded. Both groups run oldest to newest by release date.
 That is every platform the Pebble SDK builds for. The original is listed as Pebble Classic
 because plain "Pebble" beside a Pebble 2 and a Pebble Time reads as a category rather than
 a watch.
