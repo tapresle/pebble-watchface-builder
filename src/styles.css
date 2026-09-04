@@ -906,13 +906,13 @@ a:hover {
 .modal[data-size='sm'] {
   width: min(460px, 100%);
 }
-/* Sized to the device picker, its only user. The picker now draws its two
-   groups separately, so what this has to fit across is the larger group - the
-   four legacy watches - rather than all seven. Narrower than this and that
-   group wraps to 3+1, which reads as a card that fell off the row rather than
-   as a group of four. */
+/* Sized to the device picker, its only user. The picker draws its two groups
+   separately, so what this has to fit across is the larger group - the four
+   Pebble Technology watches - rather than all seven. Narrower than this and
+   that group wraps to 3+1, which reads as a card that fell off the row rather
+   than as a group of four. */
 .modal[data-size='md'] {
-  width: min(900px, 100%);
+  width: min(930px, 100%);
 }
 .modal[data-size='lg'] {
   width: min(1080px, 100%);
@@ -1012,7 +1012,11 @@ a:hover {
 }
 
 .device-card {
-  flex: 0 0 200px;
+  /* Wide enough for the longest name on one line - "Pebble Time & Time Steel",
+     which two watches share - plus the padding. Under that, .device-name's
+     nowrap sets a min-content width the card cannot shrink past, and the card
+     holding that name comes out a few pixels wider than the rest of its row. */
+  flex: 0 0 210px;
   display: grid;
   /* Fixed tracks, so the same row in each card sits at the same height. */
   grid-template-rows: auto auto 1fr;
