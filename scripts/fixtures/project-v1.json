@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "platform": "emery",
+  "name": "My Watchface",
+  "author": "Me",
+  "uuid": "ddbdc5fd-37a0-4896-b5f2-2c9fa9081cad",
+  "version": "1.0",
+  "backgroundColor": "#000000",
+  "elements": [
+    {
+      "id": "el_mtgnwvsz4",
+      "x": 10,
+      "y": 73,
+      "visible": true,
+      "locked": false,
+      "type": "time",
+      "mode": "time",
+      "name": "Time",
+      "w": 180,
+      "h": 46,
+      "align": "center",
+      "color": "#ffffff",
+      "font": {
+        "kind": "system",
+        "key": "FONT_KEY_BITHAM_42_BOLD"
+      },
+      "format": "%I:%M %p",
+      "stripLeadingZero": false,
+      "uppercase": false
+    },
+    {
+      "id": "el_mtgnwvsz5",
+      "x": 10,
+      "y": 124,
+      "visible": true,
+      "locked": false,
+      "type": "time",
+      "mode": "date",
+      "name": "Date",
+      "w": 180,
+      "h": 24,
+      "align": "center",
+      "color": "#ffaa00",
+      "font": {
+        "kind": "system",
+        "key": "FONT_KEY_GOTHIC_24_BOLD"
+      },
+      "format": "%a %d %b",
+      "stripLeadingZero": false,
+      "uppercase": true
+    },
+    {
+      "id": "el_mtgnwvsz6",
+      "x": 40,
+      "y": 169,
+      "visible": true,
+      "locked": false,
+      "type": "batteryBar",
+      "name": "Battery bar",
+      "w": 120,
+      "h": 12,
+      "orientation": "horizontal",
+      "reverse": false,
+      "backgroundColor": "#555555",
+      "fillColor": "#00aaff",
+      "borderColor": "#ffffff",
+      "borderWidth": 1,
+      "lowColor": "#ff5500",
+      "lowThreshold": 20,
+      "chargingColor": "#00ff55",
+      "padding": 2,
+      "radius": 0
+    }
+  ],
+  "fonts": [],
+  "images": [],
+  "options": {
+    "forceSecondTicks": false,
+    "vibeOnDisconnect": false,
+    "weatherApiKey": "",
+    "weatherRefreshMinutes": 30
+  }
+}
