@@ -78,6 +78,7 @@ export function StageToolbar({
   const { preview } = store;
   const weatherElements = store.project.elements.filter((el) => el.type === 'weather');
   const hasWeather = weatherElements.length > 0;
+  const hasCalendar = store.project.elements.some((el) => el.type === 'calendar');
   const hasCompass = store.project.elements.some((el) => el.type === 'compass');
   // Prefer the selected weather element's units, so editing the box after
   // clicking an element matches what that element is set to; otherwise fall
@@ -252,6 +253,54 @@ export function StageToolbar({
               store.setPreview({ weatherTempC: displayToCelsius(Math.round(displayValue), weatherUnits) })
             }
           />
+        </>
+      )}
+
+      {hasCalendar && (
+        <>
+          <label className="checkbox" style={{ padding: 0 }}>
+            <input
+              type="checkbox"
+              checked={preview.calendarHasEvent}
+              onChange={(e) => store.setPreview({ calendarHasEvent: e.target.checked })}
+            />
+            <span>Has event</span>
+          </label>
+          {preview.calendarHasEvent && (
+            <>
+              <span className="chip">
+                Title
+                <input
+                  className="input"
+                  style={{ width: 108, padding: '2px 6px' }}
+                  value={preview.calendarTitle}
+                  onChange={(e) => store.setPreview({ calendarTitle: e.target.value })}
+                  aria-label="Preview event title"
+                />
+              </span>
+              <span className="chip">
+                Location
+                <input
+                  className="input"
+                  style={{ width: 108, padding: '2px 6px' }}
+                  value={preview.calendarLocation}
+                  onChange={(e) => store.setPreview({ calendarLocation: e.target.value })}
+                  aria-label="Preview event location"
+                />
+              </span>
+              <NumberChip
+                label="In"
+                value={preview.calendarMinutesUntil}
+                min={-120}
+                max={720}
+                width={56}
+                suffix="min"
+                onChange={(calendarMinutesUntil) =>
+                  store.setPreview({ calendarMinutesUntil: Math.round(calendarMinutesUntil) })
+                }
+              />
+            </>
+          )}
         </>
       )}
 

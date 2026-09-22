@@ -223,6 +223,10 @@ const defaultPreview = (): PreviewState => {
     weatherTempC: 18,
     weatherRainChance: 20,
     compassHeading: 45,
+    calendarHasEvent: true,
+    calendarTitle: 'Team standup',
+    calendarLocation: 'Video Call',
+    calendarMinutesUntil: 45,
   };
 };
 

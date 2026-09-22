@@ -28,6 +28,7 @@ import {
   COMPASS_REFRESH_MS,
 } from '../lib/compass';
 import { WEATHER_FIELDS, isTemperatureField } from '../lib/weather';
+import { CALENDAR_FIELDS } from '../lib/calendar';
 import {
   ColorField,
   Field,
@@ -354,9 +355,10 @@ function TypeControls({ el, patch }: { el: WatchElement; patch: (p: Patch) => vo
           <div className="callout">
             <strong className="callout-title">Weather comes from your phone</strong>
             The watch has no weather radio. The export adds a companion JavaScript file that fetches
-            from OpenWeatherMap and sends the numbers over. You need a free API key, which goes in
-            the <strong>Project</strong> tab, and CloudPebble needs the JS file and the message keys
-            added by hand. The export panel spells out both.
+            from OpenWeatherMap and sends the numbers over. Once the watchface is installed, its gear
+            icon in the Pebble phone app opens a settings page for entering a free API key - nothing
+            to set here. CloudPebble needs the JS file and the message keys added by hand; the export
+            panel spells out both.
           </div>
           <div className="section-title">Appearance</div>
           {icon ? (
@@ -364,6 +366,65 @@ function TypeControls({ el, patch }: { el: WatchElement; patch: (p: Patch) => vo
           ) : (
             <TextBoxControls el={el} patch={patch} />
           )}
+        </>
+      );
+    }
+
+    case 'calendar': {
+      const toggleField = (value: (typeof CALENDAR_FIELDS)[number]['value'], checked: boolean) => {
+        const fields = checked ? [...el.fields, value] : el.fields.filter((v) => v !== value);
+        patch({ fields } as Patch);
+      };
+      return (
+        <>
+          <div className="section-title">View</div>
+          {CALENDAR_FIELDS.map((f) => (
+            <ToggleField
+              key={f.value}
+              label={f.label}
+              checked={el.fields.includes(f.value)}
+              onChange={(checked) => toggleField(f.value, checked)}
+            />
+          ))}
+          {el.fields.length > 1 && (
+            <Segmented
+              label="Layout"
+              value={el.orientation}
+              options={[
+                { value: 'vertical', label: 'Stacked' },
+                { value: 'horizontal', label: 'Side by side' },
+              ]}
+              onChange={(orientation) => patch({ orientation } as Patch)}
+            />
+          )}
+          {el.fields.length > 1 && el.orientation === 'horizontal' && (
+            <TextField
+              label="Separator"
+              value={el.separator}
+              onChange={(separator) => patch({ separator } as Patch)}
+              hint="Goes between fields. Clear it for none."
+            />
+          )}
+          <div className="field-row">
+            <TextField label="Prefix" value={el.prefix} onChange={(prefix) => patch({ prefix } as Patch)} />
+            <TextField label="Suffix" value={el.suffix} onChange={(suffix) => patch({ suffix } as Patch)} />
+          </div>
+          <TextField
+            label="No-event placeholder"
+            value={el.placeholder}
+            onChange={(placeholder) => patch({ placeholder } as Patch)}
+            hint="Shown until the phone sends a reading, and whenever there is no upcoming event."
+          />
+          <div className="callout">
+            <strong className="callout-title">Calendar comes from your phone</strong>
+            The watch has no calendar of its own. The export adds a companion JavaScript file that
+            fetches an ICS feed and sends the next event's details over. Once the watchface is
+            installed, its gear icon in the Pebble phone app opens a settings page for entering the
+            feed URL - nothing to set here. CloudPebble needs the JS file and the message keys added
+            by hand; the export panel spells out both.
+          </div>
+          <div className="section-title">Appearance</div>
+          <TextBoxControls el={el} patch={patch} />
         </>
       );
     }

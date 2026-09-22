@@ -9,6 +9,7 @@
 import type { PlatformId } from './lib/platform';
 import type { CompassDisplay, CompassPoints } from './lib/compass';
 import type { WeatherCondition, WeatherField, WeatherUnits } from './lib/weather';
+import type { CalendarField, CalendarOrientation } from './lib/calendar';
 
 export type { PlatformId };
 
@@ -65,6 +66,7 @@ export type ElementType =
   | 'steps'
   | 'heartRate'
   | 'weather'
+  | 'calendar'
   | 'compass'
   | 'batteryText'
   | 'batteryBar'
@@ -154,6 +156,29 @@ export interface WeatherElement extends TextBoxBase {
   prefix: string;
   suffix: string;
   /** Shown until the phone sends a reading. */
+  placeholder: string;
+}
+
+/**
+ * The next upcoming event from an ICS feed. Like weather, this comes from a
+ * PebbleKit JS companion on the phone rather than from the watch, so it has a
+ * placeholder for the window before the first reading arrives, and for when
+ * there is no upcoming event at all.
+ */
+export interface CalendarElement extends TextBoxBase {
+  type: 'calendar';
+  /**
+   * Which pieces of the next event to show. One or more; always rendered in
+   * CALENDAR_FIELDS order regardless of the order they were checked in.
+   */
+  fields: CalendarField[];
+  /** How multiple fields are joined - stacked on their own lines, or side by side. */
+  orientation: CalendarOrientation;
+  /** Goes between side-by-side fields; stacked fields always split on a newline instead. */
+  separator: string;
+  prefix: string;
+  suffix: string;
+  /** Shown until the phone reports in, and whenever there is no next event. */
   placeholder: string;
 }
 
@@ -332,6 +357,7 @@ export type WatchElement =
   | StepsElement
   | HeartRateElement
   | WeatherElement
+  | CalendarElement
   | CompassElement
   | BatteryTextElement
   | BatteryBarElement
@@ -368,6 +394,8 @@ export interface WatchfaceProject {
     vibeOnDisconnect: boolean;
     /** How often the watch asks the phone for fresh weather, in minutes. */
     weatherRefreshMinutes: number;
+    /** How often the watch asks the phone for a fresh next event, in minutes. */
+    calendarRefreshMinutes: number;
   };
 }
 
@@ -393,4 +421,10 @@ export interface PreviewState {
   weatherRainChance: number;
   /** Preview compass bearing in degrees clockwise from north. */
   compassHeading: number;
+  /** Stand-in calendar, so calendar elements have something to draw. */
+  calendarHasEvent: boolean;
+  calendarTitle: string;
+  calendarLocation: string;
+  /** Minutes from the preview clock to the stand-in event's start. */
+  calendarMinutesUntil: number;
 }

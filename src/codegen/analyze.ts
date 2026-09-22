@@ -39,6 +39,8 @@ export interface ProjectAnalysis {
   needsWeather: boolean;
   /** A weather element that draws artwork, which needs the icon helper. */
   needsWeatherIcon: boolean;
+  /** Any calendar element, which is what pulls in the phone companion. */
+  needsCalendar: boolean;
   /** Any compass element, which powers up the magnetometer. */
   needsCompass: boolean;
   /** Elements that will actually be drawn, bottom layer first. */
@@ -61,6 +63,7 @@ export function analyzeProject(project: WatchfaceProject): ProjectAnalysis {
   let needsSeconds = project.options.forceSecondTicks;
   let needsWeather = false;
   let needsWeatherIcon = false;
+  let needsCalendar = false;
   let needsCompass = false;
 
   const drawOrder = project.elements.filter((el) => el.visible);
@@ -122,6 +125,9 @@ export function analyzeProject(project: WatchfaceProject): ProjectAnalysis {
         needsWeather = true;
         if (el.field === 'icon') needsWeatherIcon = true;
         break;
+      case 'calendar':
+        needsCalendar = true;
+        break;
       case 'compass':
         needsCompass = true;
         if (!spec.hasCompass) {
@@ -181,6 +187,7 @@ export function analyzeProject(project: WatchfaceProject): ProjectAnalysis {
     needsSeconds,
     needsWeather,
     needsWeatherIcon,
+    needsCalendar,
     needsCompass,
     drawOrder,
     warnings,

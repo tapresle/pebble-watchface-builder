@@ -258,6 +258,15 @@ export const PALETTE_ICON: Record<PaletteId, JSX.Element> = {
       <path d="M4.7 12.7h6.6a2.8 2.8 0 0 0 .5-5.6 4 4 0 0 0-7.7-.3 2.9 2.9 0 0 0 .6 5.9Z" />
     </Glyph>
   ),
+  // The same calendar page as `date`, with a filled dot for the event that
+  // makes this one worth showing - `date` never marks anything on the page.
+  calendar: (
+    <Glyph>
+      <rect x="2" y="3.2" width="12" height="11.2" rx="1.6" />
+      <path d="M2 6.6h12M5.4 1.6v3M10.6 1.6v3" />
+      <circle cx="8" cy="10.4" r="1.1" fill="currentColor" stroke="none" />
+    </Glyph>
+  ),
   compass: (
     <Glyph>
       <circle cx="8" cy="8" r="6.3" />
