@@ -366,11 +366,6 @@ export interface WatchfaceProject {
     forceSecondTicks: boolean;
     /** Emit the vibrate-on-bluetooth-disconnect handler. */
     vibeOnDisconnect: boolean;
-    /**
-     * OpenWeatherMap API key, baked into the generated companion JS. Only used
-     * when the face has a weather element; the user supplies their own.
-     */
-    weatherApiKey: string;
     /** How often the watch asks the phone for fresh weather, in minutes. */
     weatherRefreshMinutes: number;
   };

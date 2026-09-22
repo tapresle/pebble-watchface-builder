@@ -150,7 +150,6 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
               needsHealth={bundle.analysis.needsHealth}
               needsSeconds={bundle.analysis.needsSeconds}
               needsWeather={bundle.analysis.needsWeather}
-              hasWeatherKey={project.options.weatherApiKey.trim().length > 0}
               onCopyWeatherJs={() => bundle.weatherJs && copy(bundle.weatherJs, 'index.js')}
               uuid={project.uuid}
               name={project.name}
@@ -171,7 +170,6 @@ function SetupGuide({
   needsHealth,
   needsSeconds,
   needsWeather,
-  hasWeatherKey,
   uuid,
   name,
   spec,
@@ -184,7 +182,6 @@ function SetupGuide({
   needsHealth: boolean;
   needsSeconds: boolean;
   needsWeather: boolean;
-  hasWeatherKey: boolean;
   uuid: string;
   name: string;
   spec: ReturnType<typeof platformSpec>;
@@ -315,6 +312,13 @@ function SetupGuide({
           <li>
             Still in <strong>Settings</strong>, tick the <strong>Health</strong> capability. Without
             it the step count always reads zero.
+          </li>
+        )}
+        {needsWeather && (
+          <li>
+            Still in <strong>Settings</strong>, tick the <strong>Configurable</strong> capability.
+            That is what makes the gear icon - where the API key gets entered after install - show
+            up next to the watchface in the phone app.
           </li>
         )}
       </ol>
@@ -450,28 +454,18 @@ function SetupGuide({
               </button>{' '}
               It is also in the zip at <code>{WEATHER_JS_PATH}</code>.
             </li>
-            <li>
-              Put your own OpenWeatherMap key in the <code>API_KEY</code> line at the top. A free
-              key from openweathermap.org is plenty.
-            </li>
           </ol>
-          {hasWeatherKey ? (
-            <p>
-              Your key from the <strong>Project</strong> tab is already baked into the generated
-              file, so there is nothing to edit.
-            </p>
-          ) : (
-            <div className="callout callout-warn">
-              <strong className="callout-title">No API key yet</strong>
-              The <code>API_KEY</code> line is empty. Put your key on the <strong>Project</strong>{' '}
-              tab so it ships with the export, or paste it straight into the JavaScript in
-              CloudPebble.
-            </div>
-          )}
           <p>
-            Weather elements show their placeholder until the first reading lands, which is normally
-            a few seconds after the watchface starts. The watch asks for a refresh on a timer after
-            that.
+            No API key goes in this file, and none is set on the <strong>Project</strong> tab
+            either. Once the watchface is installed, tap its gear icon in the Pebble phone app's
+            watchapp list - the <strong>Configurable</strong> capability from step 2 is what puts
+            that icon there - and enter an OpenWeatherMap key on the settings page that opens. It
+            is saved on the phone, not in this project.
+          </p>
+          <p>
+            Weather elements show their placeholder until a key is entered and the first reading
+            lands, which is normally a few seconds after that. The watch asks for a refresh on a
+            timer after.
           </p>
         </>
       )}

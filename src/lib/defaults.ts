@@ -293,7 +293,6 @@ export function createStarterProject(platform: PlatformId = 'emery'): WatchfaceP
     options: {
       forceSecondTicks: false,
       vibeOnDisconnect: false,
-      weatherApiKey: '',
       weatherRefreshMinutes: 30,
     },
   };

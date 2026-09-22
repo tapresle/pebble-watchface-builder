@@ -114,17 +114,11 @@ export function ProjectPanel() {
       {hasWeather && (
         <>
           <div className="section-title">Weather</div>
-          <TextField
-            label="OpenWeatherMap API key"
-            value={project.options.weatherApiKey}
-            onChange={(weatherApiKey) =>
-              store.update((p) => ({ ...p, options: { ...p.options, weatherApiKey } }), {
-                snapshot: false,
-              })
-            }
-            mono
-            hint="Baked into the companion JavaScript the export generates. A free key from openweathermap.org is enough. It is stored in this project file, so treat a downloaded copy as private."
-          />
+          <div className="field-hint">
+            The OpenWeatherMap API key is not set here. It is entered on the phone after the
+            watchface is installed, from the gear icon the export's settings page adds - see the
+            Export guide for the steps.
+          </div>
           <NumberField
             label="Refresh every (minutes)"
             value={project.options.weatherRefreshMinutes}
