@@ -171,13 +171,6 @@ export function analyzeProject(project: WatchfaceProject): ProjectAnalysis {
     }
   }
 
-  if (needsWeather && !project.options.weatherApiKey.trim()) {
-    warnings.push(
-      'This face shows weather but has no OpenWeatherMap API key. Add one on the Project tab, ' +
-        'or the companion will have nothing to fetch with.',
-    );
-  }
-
   return {
     fonts: [...fontMap.values()],
     images,

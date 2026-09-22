@@ -89,7 +89,11 @@ export function generatePackageJson(project: WatchfaceProject, analysis: Project
     messageKeys: analysis.needsWeather ? [...WEATHER_MESSAGE_KEYS] : [],
     resources: { media },
   };
-  if (analysis.needsHealth) pebble.capabilities = ['health'];
+  const capabilities: string[] = [];
+  if (analysis.needsHealth) capabilities.push('health');
+  // Lets the phone app show the gear icon that opens the settings page below.
+  if (analysis.needsWeather) capabilities.push('configurable');
+  if (capabilities.length) pebble.capabilities = capabilities;
 
   const doc = {
     name: npmName(project.name),
@@ -113,9 +117,15 @@ export const WEATHER_JS_PATH = 'src/pkjs/index.js';
  * The watch itself has no network, so weather has to be fetched by JavaScript
  * running on the phone and pushed over AppMessage. The condition mapping here
  * is the same one the builder previews with.
+ *
+ * The API key is never baked into this file. `enableMultiJS` is off (see
+ * generatePackageJson), so this has to stay one self-contained script rather
+ * than `require`-ing a settings-page module - the settings HTML is built as a
+ * data: URI and opened with `Pebble.openURL`, and the key it collects lives in
+ * this phone's localStorage, entered after the watchface is installed via the
+ * gear icon the 'configurable' capability adds next to it.
  */
 export function generateWeatherJs(project: WatchfaceProject): string {
-  const key = project.options.weatherApiKey.trim();
   const conditionCases = [
     "  if (code >= 200 && code < 300) return " + WEATHER_CONDITIONS.indexOf('thunderstorm') + ';',
     "  if (code >= 300 && code < 600) return " + WEATHER_CONDITIONS.indexOf('rain') + ';',
@@ -132,10 +142,82 @@ export function generateWeatherJs(project: WatchfaceProject): string {
 // This runs on your phone, not on the watch. It finds your location, asks
 // OpenWeatherMap what the weather is, and sends the numbers to the watchface
 // over AppMessage. The watchface shows its placeholder until the first
-// message lands.
+// message lands - and until an API key is entered below, since there is
+// nothing to fetch without one.
+//
+// The key lives on this phone only: tap the watchface's gear icon in the
+// Pebble app's watchapp list to open the settings page and enter it. Nothing
+// is baked into this file or into the exported project.
 
-// Your own OpenWeatherMap key. Free tier is plenty: openweathermap.org/api
-var API_KEY = '${key.replace(/'/g, "\\'")}';
+var API_KEY_STORAGE_KEY = 'weatherApiKey';
+
+function storedApiKey() {
+  try {
+    return localStorage.getItem(API_KEY_STORAGE_KEY) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function escapeForHtmlAttribute(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// A single-field settings page, self-contained so it needs no hosting: it
+// travels to the phone's browser as a data: URI, not a fetched URL.
+function buildSettingsHtml(currentKey) {
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+    '<title>Weather Settings</title><style>' +
+    'body{background:#0f172a;color:#e2e8f0;font-family:sans-serif;margin:0;padding:16px}' +
+    'h1{font-size:18px;margin:0 0 16px}' +
+    'label{display:block;font-size:12px;color:#94a3b8;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em}' +
+    'input{width:100%;box-sizing:border-box;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:10px;font-size:14px}' +
+    'p.hint{font-size:12px;color:#94a3b8;margin:8px 0 20px}' +
+    'a{color:#38bdf8}' +
+    'button{width:100%;padding:14px;font-size:15px;font-weight:600;border:none;border-radius:8px;background:#0891b2;color:#fff}' +
+    '</style></head><body>' +
+    '<h1>Weather Settings</h1>' +
+    '<label>OpenWeatherMap API key</label>' +
+    '<input id="apiKey" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" value="' +
+    escapeForHtmlAttribute(currentKey) + '">' +
+    '<p class="hint">Free at <a href="https://openweathermap.org/api">openweathermap.org/api</a>. Stored on this phone only.</p>' +
+    '<button id="saveBtn">Save</button>' +
+    '<script>' +
+    'document.getElementById("saveBtn").addEventListener("click", function () {' +
+    'var payload = { apiKey: document.getElementById("apiKey").value.trim() };' +
+    'document.location = "pebblejs://close#" + encodeURIComponent(JSON.stringify(payload));' +
+    '});' +
+    '</script></body></html>';
+}
+
+Pebble.addEventListener('showConfiguration', function () {
+  var html = buildSettingsHtml(storedApiKey());
+  Pebble.openURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+});
+
+Pebble.addEventListener('webviewclosed', function (e) {
+  if (!e.response) return;
+  var config;
+  try {
+    config = JSON.parse(decodeURIComponent(e.response));
+  } catch (err) {
+    console.log('weather: could not read settings, ' + err);
+    return;
+  }
+  if (typeof config.apiKey !== 'string') return;
+  try {
+    localStorage.setItem(API_KEY_STORAGE_KEY, config.apiKey);
+  } catch (err) {
+    console.log('weather: could not save the key, ' + err);
+    return;
+  }
+  locateAndFetch();
+});
 
 // The watchface draws one of a fixed set of icons, so the service's condition
 // codes are collapsed onto that set here.
@@ -170,13 +252,14 @@ function send(payload) {
 }
 
 function fetchWeather(latitude, longitude) {
-  if (!API_KEY) {
-    console.log('weather: no API key set, edit API_KEY at the top of this file');
+  var apiKey = storedApiKey();
+  if (!apiKey) {
+    console.log('weather: no API key yet - open this watchface\\'s settings in the Pebble app');
     return;
   }
   var base = 'https://api.openweathermap.org/data/2.5/';
   var query =
-    '?lat=' + latitude + '&lon=' + longitude + '&units=metric&appid=' + API_KEY;
+    '?lat=' + latitude + '&lon=' + longitude + '&units=metric&appid=' + apiKey;
 
   getJson(base + 'weather' + query, function (now) {
     if (!now || !now.main || !now.weather || !now.weather.length) return;
@@ -291,8 +374,20 @@ export function generateReadme(
     `2. In **Settings**, set the app to a *watchface*, and enable the **${platformLabel(spec.sdkPlatform)}** platform.`,
   );
   lines.push(`3. Set the UUID to \`${project.uuid}\` (or keep the one CloudPebble generated).`);
+  let step = 4;
   if (analysis.needsHealth) {
-    lines.push('4. In **Settings → Capabilities**, tick **Health** - the step counter needs it.');
+    lines.push(
+      `${step}. In **Settings → Capabilities**, tick **Health** - the step counter needs it.`,
+    );
+    step += 1;
+  }
+  if (analysis.needsWeather) {
+    lines.push(
+      `${step}. In **Settings → Capabilities**, tick **Configurable** - this is what puts a gear ` +
+        'icon next to the watchface in the phone app, where the OpenWeatherMap key gets entered ' +
+        'after install.',
+    );
+    step += 1;
   }
   lines.push('');
   if (analysis.needsWeather) {
@@ -315,13 +410,14 @@ export function generateReadme(
     for (const key of WEATHER_MESSAGE_KEYS) lines.push(`   - \`${key}\``);
     lines.push('');
     lines.push(
-      '3. Put your own OpenWeatherMap API key in the `API_KEY` line at the top of the ' +
-        'JavaScript. A free key from openweathermap.org is enough.',
+      'No API key goes in this file. Once the watchface is installed, its gear icon in the ' +
+        'phone app opens a settings page for entering an OpenWeatherMap key - saved on the ' +
+        'phone, not in this project. A free key from openweathermap.org is enough.',
     );
     lines.push('');
     lines.push(
-      'Weather elements show their placeholder until the first reading arrives, which takes a ' +
-        'few seconds after the watchface loads.',
+      'Weather elements show their placeholder until a key is entered and the first reading ' +
+        'arrives, which takes a few seconds after that.',
     );
     lines.push('');
   }
@@ -351,8 +447,8 @@ export function generateReadme(
     lines.push('This watchface only uses built-in system fonts, so there is nothing to upload.');
     lines.push('');
   }
-  lines.push('5. Paste `src/c/main.c` over the contents of the project\'s `main.c`.');
-  lines.push('6. Hit **Save**, then **Compile → Run/Install**.');
+  lines.push(`${step}. Paste \`src/c/main.c\` over the contents of the project's \`main.c\`.`);
+  lines.push(`${step + 1}. Hit **Save**, then **Compile → Run/Install**.`);
   lines.push('');
   lines.push('## Building with the local Pebble SDK');
   lines.push('');
