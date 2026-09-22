@@ -95,6 +95,10 @@ export const windTenthsToDisplay = (tenths: number, units: WeatherUnits): number
 export const temperatureUnitLabel = (units: WeatherUnits): string =>
   units === 'imperial' ? 'F' : 'C';
 
+/** Inverse of cTenthsToDisplay, for editing a whole-degree control back into Celsius. */
+export const displayToCelsius = (value: number, units: WeatherUnits): number =>
+  units === 'imperial' ? Math.round(((value - 32) * 5) / 9) : value;
+
 export const windUnitLabel = (units: WeatherUnits): string =>
   units === 'imperial' ? 'mph' : 'km/h';
 
