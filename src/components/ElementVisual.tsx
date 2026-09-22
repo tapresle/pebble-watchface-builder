@@ -4,8 +4,8 @@
  */
 
 import type { CSSProperties } from 'react';
-import type { CustomFont, ImageAsset, WatchElement, WeatherElement } from '../types';
-import type { PreviewValues, PreviewWeather } from '../lib/previewValues';
+import type { CalendarElement, CustomFont, ImageAsset, WatchElement, WeatherElement } from '../types';
+import type { PreviewCalendar, PreviewValues, PreviewWeather } from '../lib/previewValues';
 import type { WeatherCondition } from '../lib/weather';
 import {
   CONDITION_ICON,
@@ -15,6 +15,8 @@ import {
   windTenthsToDisplay,
   windUnitLabel,
 } from '../lib/weather';
+import type { CalendarField } from '../lib/calendar';
+import { CALENDAR_FIELDS, calendarSeparator } from '../lib/calendar';
 import { compassText } from '../lib/compass';
 import { fontStyle } from '../lib/fontLoader';
 import { strftime, stripLeadingZero } from '../lib/strftime';
@@ -51,6 +53,33 @@ function weatherText(el: WeatherElement, w: PreviewWeather): string {
     case 'location': return w.location;
     default: return '';
   }
+}
+
+/** One field's reading, once an event is known - the piece calendarText joins together. */
+function calendarFieldText(field: CalendarField, cal: PreviewCalendar, now: Date): string {
+  switch (field) {
+    case 'title': return cal.title;
+    case 'location': return cal.location;
+    case 'time': return strftime('%H:%M', cal.start);
+    case 'countdown': {
+      const minutes = Math.round((cal.start.getTime() - now.getTime()) / 60000);
+      if (minutes <= 0) return 'now';
+      if (minutes < 60) return `in ${minutes}m`;
+      return `in ${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+    }
+  }
+}
+
+/**
+ * Every chosen field, joined the way the generated C joins them - stacked on
+ * their own lines, or side by side - so the preview and the watch read alike.
+ * Always in CALENDAR_FIELDS order, regardless of the order they were checked.
+ */
+function calendarText(el: CalendarElement, cal: PreviewCalendar, now: Date): string {
+  const fields = CALENDAR_FIELDS.filter((f) => el.fields.includes(f.value));
+  return fields
+    .map((f) => calendarFieldText(f.value, cal, now))
+    .join(calendarSeparator(el.orientation, el.separator));
 }
 
 /**
@@ -179,6 +208,13 @@ export function ElementVisual({ el, fonts, images, values, renderedImages }: Pro
       }
       const text = `${el.prefix}${weatherText(el, values.weather)}${el.suffix}`;
       return <div className="el-text" style={textBoxStyle(el, fonts, el.color)}>{text}</div>;
+    }
+
+    case 'calendar': {
+      const reading = values.calendar.hasEvent
+        ? `${el.prefix}${calendarText(el, values.calendar, values.date)}${el.suffix}`
+        : el.placeholder;
+      return <div className="el-text" style={textBoxStyle(el, fonts, el.color)}>{reading}</div>;
     }
 
     case 'compass': {

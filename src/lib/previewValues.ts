@@ -21,6 +21,15 @@ export interface PreviewWeather {
   location: string;
 }
 
+/** The next event, as the phone would have sent it. */
+export interface PreviewCalendar {
+  hasEvent: boolean;
+  title: string;
+  location: string;
+  /** Absolute start time, so the preview reads it the same way the C does. */
+  start: Date;
+}
+
 export interface PreviewValues {
   date: Date;
   battery: number;
@@ -31,6 +40,7 @@ export interface PreviewValues {
   weather: PreviewWeather;
   /** Compass bearing in degrees clockwise from north. */
   compassHeading: number;
+  calendar: PreviewCalendar;
 }
 
 /** Ticks once a second, but only while the preview is following the real clock. */
@@ -59,6 +69,12 @@ export function previewValues(preview: PreviewState): PreviewValues {
     steps: preview.steps,
     heartRate: preview.heartRate,
     compassHeading: preview.compassHeading,
+    calendar: {
+      hasEvent: preview.calendarHasEvent,
+      title: preview.calendarTitle,
+      location: preview.calendarLocation,
+      start: new Date(date.getTime() + preview.calendarMinutesUntil * 60000),
+    },
     weather: {
       condition: preview.weatherCondition,
       tempTenths,

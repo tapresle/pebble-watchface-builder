@@ -1,6 +1,7 @@
 /** Factories for new elements and for the starter project. */
 
 import type { ElementType, PlatformId, WatchElement, WatchfaceProject } from '../types';
+import { CALENDAR_DEFAULT_SEPARATOR } from './calendar';
 import { elementBox, visibleWidthAt } from './geometry';
 import { platformSpec, type PlatformSpec } from './platform';
 import { uid, uuidv4 } from './utils';
@@ -56,6 +57,7 @@ export type PaletteId =
   | 'heartRate'
   | 'bluetooth'
   | 'weather'
+  | 'calendar'
   | 'compass'
   | 'polygon'
   | 'circle'
@@ -64,8 +66,8 @@ export type PaletteId =
 
 const PALETTE_IDS = new Set<string>([
   'time', 'date', 'analog', 'text', 'batteryText', 'batteryBar', 'batteryRing',
-  'steps', 'heartRate', 'bluetooth', 'weather', 'compass', 'polygon', 'circle',
-  'line', 'image',
+  'steps', 'heartRate', 'bluetooth', 'weather', 'calendar', 'compass', 'polygon',
+  'circle', 'line', 'image',
 ]);
 
 export const isPaletteId = (value: string): value is PaletteId => PALETTE_IDS.has(value);
@@ -98,6 +100,7 @@ export const ELEMENT_KINDS: ElementKind[] = [
   { paletteId: 'heartRate', type: 'heartRate', label: 'Heart rate', hint: 'Live BPM from the sensor', group: 'Complications', requires: (spec) => spec.hasHeartRate },
   { paletteId: 'bluetooth', type: 'bluetooth', label: 'Bluetooth', hint: 'Connection indicator', group: 'Complications' },
   { paletteId: 'weather', type: 'weather', label: 'Weather', hint: 'Temperature, rain, an icon', group: 'Complications' },
+  { paletteId: 'calendar', type: 'calendar', label: 'Calendar', hint: 'Next event from an ICS feed', group: 'Complications' },
   { paletteId: 'compass', type: 'compass', label: 'Compass', hint: 'Heading as N, NE, E…', group: 'Complications', requires: (spec) => spec.hasCompass },
   { paletteId: 'polygon', type: 'polygon', label: 'Polygon', hint: 'Rectangle, triangle, hexagon…', group: 'Shapes & art' },
   { paletteId: 'circle', type: 'circle', label: 'Circle', hint: 'Filled disc or ring', group: 'Shapes & art' },
@@ -189,6 +192,14 @@ export function createElement({
         font: { kind: 'system', key: 'FONT_KEY_GOTHIC_24_BOLD' },
         field: 'temperature', units: 'imperial', degreeSymbol: true,
         prefix: '', suffix: '', placeholder: '--',
+      };
+    case 'calendar':
+      return {
+        ...base, type: 'calendar', name: nextName(existing, 'Calendar'),
+        w: half, h: 24, align: 'center', color: t.muted,
+        font: { kind: 'system', key: 'FONT_KEY_GOTHIC_24_BOLD' },
+        fields: ['title'], orientation: 'vertical', separator: CALENDAR_DEFAULT_SEPARATOR,
+        prefix: '', suffix: '', placeholder: 'No events',
       };
     case 'compass':
       return {
@@ -294,6 +305,7 @@ export function createStarterProject(platform: PlatformId = 'emery'): WatchfaceP
       forceSecondTicks: false,
       vibeOnDisconnect: false,
       weatherRefreshMinutes: 30,
+      calendarRefreshMinutes: 15,
     },
   };
 }

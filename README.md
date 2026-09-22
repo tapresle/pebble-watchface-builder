@@ -40,14 +40,19 @@ reads as a category rather than a watch.
   canvas clips to it, because a round panel hands the app a square framebuffer and lights
   only the circle inside it.
 - Elements: digital time/date (any `strftime` format), analog dial, static text, step
-  count, heart rate, battery as text / bar / ring, Bluetooth indicator, weather, compass,
-  polygons, circles, lines, and PNG images.
+  count, heart rate, battery as text / bar / ring, Bluetooth indicator, weather, calendar,
+  compass, polygons, circles, lines, and PNG images.
 - Weather as ten readings - temperature, feels-like, today's high and low, chance of rain,
   humidity, wind, condition text, place name, and a drawn condition icon - with
   Celsius/Fahrenheit and km/h/mph per element. The watch has no weather radio, so the
   export also emits a PebbleKit JS companion that geolocates, queries OpenWeatherMap, and
   pushes the numbers over AppMessage, plus the message keys and the CloudPebble steps for
   wiring it up.
+- Calendar as the next upcoming event - title, start time, a live countdown, or location -
+  pulled from an ICS feed URL (a Google Calendar "secret address" or an iCloud calendar's
+  public link work) and polled on a timer. No secret ever goes in the exported project: the
+  same companion opens a settings page, as a gear icon next to the installed watchface on
+  the phone, for entering the weather API key and the calendar URL after install.
 - Compass heading as a named point (N, NE, E and so on, at 4, 8, or 16 points), as a
   bearing in degrees, or both.
 - Complications that need hardware the target watch lacks are hidden from the palette -

@@ -18,6 +18,7 @@ import type {
   BatteryRingElement,
   BatteryTextElement,
   BluetoothElement,
+  CalendarElement,
   CircleElement,
   CompassElement,
   FontRef,
@@ -47,6 +48,13 @@ import {
   temperatureUnitLabel,
   windUnitLabel,
 } from '../lib/weather';
+import {
+  CALENDAR_FIELD_BYTES,
+  CALENDAR_FIELDS,
+  CALENDAR_LOCATION_BYTES,
+  CALENDAR_TITLE_BYTES,
+  calendarSeparator,
+} from '../lib/calendar';
 import { cString } from '../lib/utils';
 import type { ProjectAnalysis } from './analyze';
 
@@ -89,7 +97,8 @@ type HelperName =
   | 'thousands'
   | 'tenths'
   | 'conditionLabel'
-  | 'compassPoint';
+  | 'compassPoint'
+  | 'calendarCountdown';
 
 /** Emitted in this order, so a helper is always defined before one that uses it. */
 const HELPER_ORDER = [
@@ -104,6 +113,7 @@ const HELPER_ORDER = [
   'tenths',
   'conditionLabel',
   'compassPoint',
+  'calendarCountdown',
 ] as const;
 
 const INDENT = '    ';
@@ -437,6 +447,74 @@ function emitWeather(el: WeatherElement, ctx: Ctx, k: Consts, prefix: string): s
 
   let body = `${i}if (s_weather_ready) {\n`;
   body += `${i}  snprintf(${buf}, sizeof(${buf}), ${format}, ${valueExpr});\n`;
+  body += `${i}} else {\n`;
+  body += `${i}  snprintf(${buf}, sizeof(${buf}), "%s", ${placeholder});\n`;
+  body += `${i}}\n`;
+  body += `${i}graphics_context_set_text_color(ctx, ${t.color});\n`;
+  return body + drawText(buf, t, i);
+}
+
+/**
+ * One or more fields, each substituted at its own %s, joined in the format
+ * string by a separator baked in at generation time - so a two-field element
+ * costs nothing extra at runtime beyond what one field already costs, and the
+ * watch never has to decide at draw time how many pieces there are.
+ */
+function emitCalendar(el: CalendarElement, ctx: Ctx, k: Consts, prefix: string): string {
+  boxConsts(el, k);
+  // Every box can be unchecked - nothing selected draws as just the prefix
+  // and suffix, same as an empty text element would.
+  const fields = CALENDAR_FIELDS.filter((f) => el.fields.includes(f.value));
+  const sep = calendarSeparator(el.orientation, el.separator);
+
+  const format = k.lit(
+    'FORMAT',
+    fmtLiteral(el.prefix) + fields.map(() => '%s').join(fmtLiteral(sep)) + fmtLiteral(el.suffix),
+    'one reading per field is substituted in, in order',
+  );
+  const placeholder = k.str(
+    'PLACEHOLDER',
+    el.placeholder,
+    'shown until the phone reports in, and whenever there is no next event',
+  );
+  const t = textConsts(el, ctx, k);
+  const size =
+    fields.reduce((sum, f) => sum + CALENDAR_FIELD_BYTES[f.value], 0) +
+    sep.length * Math.max(0, fields.length - 1) +
+    el.prefix.length +
+    el.suffix.length +
+    el.placeholder.length +
+    8;
+  const buf = bufferFor(ctx, prefix, size, 160);
+
+  const args: string[] = [];
+  let body = `${i}if (s_calendar_has_event) {\n`;
+  for (const f of fields) {
+    switch (f.value) {
+      case 'title':
+        args.push('s_calendar_title');
+        break;
+      case 'location':
+        args.push('s_calendar_location');
+        break;
+      case 'time':
+        body += `${i}  char time_buf[12];\n`;
+        body += `${i}  strftime(time_buf, sizeof(time_buf), "%H:%M", localtime(&s_calendar_start));\n`;
+        args.push('time_buf');
+        break;
+      case 'countdown':
+        ctx.helpers.add('calendarCountdown');
+        body += `${i}  char countdown_buf[16];\n`;
+        body += `${i}  calendar_format_countdown(countdown_buf, sizeof(countdown_buf), s_calendar_start);\n`;
+        args.push('countdown_buf');
+        break;
+    }
+  }
+  // No trailing comma when nothing is selected - snprintf(buf, size, FORMAT)
+  // with a plain literal and no substitutions is exactly what prefix + suffix
+  // alone needs.
+  const argList = args.length ? `, ${args.join(', ')}` : '';
+  body += `${i}  snprintf(${buf}, sizeof(${buf}), ${format}${argList});\n`;
   body += `${i}} else {\n`;
   body += `${i}  snprintf(${buf}, sizeof(${buf}), "%s", ${placeholder});\n`;
   body += `${i}}\n`;
@@ -893,6 +971,12 @@ function elementLabel(el: WatchElement): string {
       const field = WEATHER_FIELDS.find((f) => f.value === el.field);
       return field ? `weather - ${field.label.toLowerCase()}` : 'weather';
     }
+    case 'calendar': {
+      const labels = CALENDAR_FIELDS.filter((f) => el.fields.includes(f.value)).map((f) =>
+        f.label.toLowerCase(),
+      );
+      return labels.length ? `calendar - ${labels.join(', ')}` : 'calendar';
+    }
     default:
       return el.type;
   }
@@ -908,6 +992,7 @@ function emitElement(el: WatchElement, prefix: string, ctx: Ctx): string {
     case 'steps': body = emitSteps(el, ctx, k, prefix); break;
     case 'heartRate': body = emitHeartRate(el, ctx, k, prefix); break;
     case 'weather': body = emitWeather(el, ctx, k, prefix); break;
+    case 'calendar': body = emitCalendar(el, ctx, k, prefix); break;
     case 'compass': body = emitCompass(el, ctx, k, prefix); break;
     case 'batteryText': body = emitBatteryText(el, ctx, k, prefix); break;
     case 'batteryBar': body = emitBatteryBar(el, k, ctx); break;
@@ -1018,6 +1103,19 @@ ${COMPASS_NAMES.map((n) => `    "${n}"`).join(',\n')}
   switch (condition) {
 ${WEATHER_CONDITIONS.map((c, index) => `    case ${index}: return "${cString(CONDITION_LABEL[c])}";`).join('\n')}
     default: return "--";
+  }
+}
+`,
+  calendarCountdown: `// Writes how long until an event starts - "in 45m" below an hour out,
+// "in 2h 15m" beyond it, or "now" once it has started.
+static void calendar_format_countdown(char *out, size_t out_size, time_t start) {
+  long diff_min = (long)((start - time(NULL)) / 60);
+  if (diff_min <= 0) {
+    snprintf(out, out_size, "now");
+  } else if (diff_min < 60) {
+    snprintf(out, out_size, "in %ldm", diff_min);
+  } else {
+    snprintf(out, out_size, "in %ldh %ldm", diff_min / 60, diff_min % 60);
   }
 }
 `,
@@ -1168,6 +1266,21 @@ function weatherGlobals(): string[] {
   ];
 }
 
+/** Globals for the phone calendar companion, same shape as weatherGlobals(). */
+function calendarGlobals(): string[] {
+  return [
+    '// Next calendar event, filled in by the companion JavaScript running on the',
+    '// phone. s_calendar_start is a Unix timestamp - the watch\'s own clock is what',
+    '// turns it into "in 45m" or a time of day, so no timezone travels with it.',
+    'static bool s_calendar_has_event = false;',
+    'static time_t s_calendar_start = 0;',
+    `static char s_calendar_title[${CALENDAR_TITLE_BYTES}] = "";`,
+    `static char s_calendar_location[${CALENDAR_LOCATION_BYTES}] = "";`,
+    'static int s_calendar_countdown = 1;',
+    '',
+  ];
+}
+
 export function generateC(project: WatchfaceProject, analysis: ProjectAnalysis): string {
   const spec = platformSpec(project.platform);
   const ctx: Ctx = { analysis, spec, color: makeColor(spec), buffers: [], helpers: new Set() };
@@ -1212,6 +1325,7 @@ export function generateC(project: WatchfaceProject, analysis: ProjectAnalysis):
   if (analysis.needsBluetooth) L.push('static bool s_bt_connected = true;');
   L.push('');
   if (analysis.needsWeather) L.push(...weatherGlobals());
+  if (analysis.needsCalendar) L.push(...calendarGlobals());
   if (analysis.needsCompass) {
     L.push('// Compass. The magnetometer stays powered while this watchface is up, which is');
     L.push('// the main battery cost here; the timer only limits how often the screen');
@@ -1253,7 +1367,6 @@ export function generateC(project: WatchfaceProject, analysis: ProjectAnalysis):
   L.push('');
 
   if (analysis.needsWeather) {
-    const refresh = Math.max(1, Math.round(project.options.weatherRefreshMinutes));
     L.push('// Asks the phone for a fresh reading. The companion answers on its own');
     L.push('// schedule too, whenever the watchface is launched.');
     L.push('static void weather_request(void) {');
@@ -1264,39 +1377,83 @@ export function generateC(project: WatchfaceProject, analysis: ProjectAnalysis):
     L.push('  }');
     L.push('}');
     L.push('');
+  }
+  if (analysis.needsCalendar) {
+    L.push('// Asks the phone for the next event. The companion answers on its own');
+    L.push('// schedule too, whenever the watchface is launched.');
+    L.push('static void calendar_request(void) {');
+    L.push('  DictionaryIterator *out;');
+    L.push('  if (app_message_outbox_begin(&out) == APP_MSG_OK) {');
+    L.push('    dict_write_uint8(out, MESSAGE_KEY_CALENDAR_REQUEST, 1);');
+    L.push('    app_message_outbox_send();');
+    L.push('  }');
+    L.push('}');
+    L.push('');
+  }
+
+  if (analysis.needsWeather || analysis.needsCalendar) {
     L.push('static void inbox_received_handler(DictionaryIterator *iter, void *context) {');
     L.push('  (void)context;');
     L.push('  Tuple *t;');
-    for (const [key, target] of [
-      ['WEATHER_TEMP', 's_weather_temp'],
-      ['WEATHER_FEELS_LIKE', 's_weather_feels_like'],
-      ['WEATHER_HIGH', 's_weather_high'],
-      ['WEATHER_LOW', 's_weather_low'],
-      ['WEATHER_RAIN_CHANCE', 's_weather_rain_chance'],
-      ['WEATHER_HUMIDITY', 's_weather_humidity'],
-      ['WEATHER_WIND', 's_weather_wind'],
-      ['WEATHER_CONDITION', 's_weather_condition'],
-    ] as const) {
-      L.push(`  if ((t = dict_find(iter, MESSAGE_KEY_${key})) != NULL) {`);
-      L.push(`    ${target} = (int)t->value->int32;`);
+    if (analysis.needsWeather) {
+      for (const [key, target] of [
+        ['WEATHER_TEMP', 's_weather_temp'],
+        ['WEATHER_FEELS_LIKE', 's_weather_feels_like'],
+        ['WEATHER_HIGH', 's_weather_high'],
+        ['WEATHER_LOW', 's_weather_low'],
+        ['WEATHER_RAIN_CHANCE', 's_weather_rain_chance'],
+        ['WEATHER_HUMIDITY', 's_weather_humidity'],
+        ['WEATHER_WIND', 's_weather_wind'],
+        ['WEATHER_CONDITION', 's_weather_condition'],
+      ] as const) {
+        L.push(`  if ((t = dict_find(iter, MESSAGE_KEY_${key})) != NULL) {`);
+        L.push(`    ${target} = (int)t->value->int32;`);
+        L.push('    s_weather_ready = true;');
+        L.push('  }');
+      }
+      L.push('  if ((t = dict_find(iter, MESSAGE_KEY_WEATHER_LOCATION)) != NULL) {');
+      L.push('    strncpy(s_weather_location, t->value->cstring, sizeof(s_weather_location) - 1);');
+      L.push("    s_weather_location[sizeof(s_weather_location) - 1] = '\\0';");
       L.push('    s_weather_ready = true;');
       L.push('  }');
     }
-    L.push('  if ((t = dict_find(iter, MESSAGE_KEY_WEATHER_LOCATION)) != NULL) {');
-    L.push('    strncpy(s_weather_location, t->value->cstring, sizeof(s_weather_location) - 1);');
-    L.push("    s_weather_location[sizeof(s_weather_location) - 1] = '\\0';");
-    L.push('    s_weather_ready = true;');
-    L.push('  }');
+    if (analysis.needsCalendar) {
+      L.push('  if ((t = dict_find(iter, MESSAGE_KEY_CALENDAR_HAS_EVENT)) != NULL) {');
+      L.push('    s_calendar_has_event = t->value->int32 != 0;');
+      L.push('  }');
+      L.push('  if ((t = dict_find(iter, MESSAGE_KEY_CALENDAR_START)) != NULL) {');
+      L.push('    s_calendar_start = (time_t)t->value->int32;');
+      L.push('  }');
+      L.push('  if ((t = dict_find(iter, MESSAGE_KEY_CALENDAR_TITLE)) != NULL) {');
+      L.push('    strncpy(s_calendar_title, t->value->cstring, sizeof(s_calendar_title) - 1);');
+      L.push("    s_calendar_title[sizeof(s_calendar_title) - 1] = '\\0';");
+      L.push('  }');
+      L.push('  if ((t = dict_find(iter, MESSAGE_KEY_CALENDAR_LOCATION)) != NULL) {');
+      L.push('    strncpy(s_calendar_location, t->value->cstring, sizeof(s_calendar_location) - 1);');
+      L.push("    s_calendar_location[sizeof(s_calendar_location) - 1] = '\\0';");
+      L.push('  }');
+    }
     L.push('  layer_mark_dirty(s_canvas_layer);');
     L.push('}');
     L.push('');
+
     L.push('static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {');
     L.push('  s_now = *tick_time;');
     L.push('  if (units_changed & MINUTE_UNIT) {');
-    L.push('    if (--s_weather_countdown <= 0) {');
-    L.push(`      s_weather_countdown = ${refresh};`);
-    L.push('      weather_request();');
-    L.push('    }');
+    if (analysis.needsWeather) {
+      const refresh = Math.max(1, Math.round(project.options.weatherRefreshMinutes));
+      L.push('    if (--s_weather_countdown <= 0) {');
+      L.push(`      s_weather_countdown = ${refresh};`);
+      L.push('      weather_request();');
+      L.push('    }');
+    }
+    if (analysis.needsCalendar) {
+      const refresh = Math.max(1, Math.round(project.options.calendarRefreshMinutes));
+      L.push('    if (--s_calendar_countdown <= 0) {');
+      L.push(`      s_calendar_countdown = ${refresh};`);
+      L.push('      calendar_request();');
+      L.push('    }');
+    }
     L.push('  }');
     L.push('  layer_mark_dirty(s_canvas_layer);');
     L.push('}');
@@ -1432,7 +1589,7 @@ export function generateC(project: WatchfaceProject, analysis: ProjectAnalysis):
     L.push('  compass_service_subscribe(compass_handler);');
     L.push(`  s_compass_timer = app_timer_register(${COMPASS_REFRESH_MS}, compass_tick, NULL);`);
   }
-  if (analysis.needsWeather) {
+  if (analysis.needsWeather || analysis.needsCalendar) {
     L.push('');
     L.push('  app_message_register_inbox_received(inbox_received_handler);');
     L.push('  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());');
@@ -1442,7 +1599,7 @@ export function generateC(project: WatchfaceProject, analysis: ProjectAnalysis):
 
   L.push('static void deinit(void) {');
   L.push('  tick_timer_service_unsubscribe();');
-  if (analysis.needsWeather) L.push('  app_message_deregister_callbacks();');
+  if (analysis.needsWeather || analysis.needsCalendar) L.push('  app_message_deregister_callbacks();');
   if (analysis.needsCompass) {
     L.push('  app_timer_cancel(s_compass_timer);');
     L.push('  compass_service_unsubscribe();');

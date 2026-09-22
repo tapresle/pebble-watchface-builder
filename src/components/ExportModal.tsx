@@ -8,15 +8,16 @@ import { useStore } from '../store';
 import { analyzeProject } from '../codegen/analyze';
 import { generateC } from '../codegen/generateC';
 import {
-  WEATHER_JS_PATH,
+  COMPANION_JS_PATH,
+  generateCompanionJs,
   generatePackageJson,
   generateReadme,
   generateResourceInstructions,
-  generateWeatherJs,
   imageFileName,
   platformLabel,
 } from '../codegen/generateProject';
 import { WEATHER_MESSAGE_KEYS } from '../lib/weather';
+import { CALENDAR_MESSAGE_KEYS } from '../lib/calendar';
 import { platformSpec } from '../lib/platform';
 import { base64ToUint8Array, downloadBlob, PROJECT_FILE_NAME, projectSlug } from '../lib/utils';
 import { createZip, textEntry, type ZipEntry } from '../lib/zip';
@@ -41,7 +42,10 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
       mainC: generateC(project, analysis),
       packageJson: generatePackageJson(project, analysis),
       readme: generateReadme(project, analysis, resources),
-      weatherJs: analysis.needsWeather ? generateWeatherJs(project) : null,
+      companionJs:
+        analysis.needsWeather || analysis.needsCalendar
+          ? generateCompanionJs(project, analysis)
+          : null,
     };
   }, [project]);
 
@@ -65,7 +69,7 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
       textEntry('README.md', bundle.readme),
       textEntry(PROJECT_FILE_NAME, JSON.stringify(project, null, 2)),
     ];
-    if (bundle.weatherJs) entries.push(textEntry(WEATHER_JS_PATH, bundle.weatherJs));
+    if (bundle.companionJs) entries.push(textEntry(COMPANION_JS_PATH, bundle.companionJs));
     for (const font of bundle.analysis.fonts) {
       entries.push({
         name: `resources/fonts/${font.font.fileName}`,
@@ -108,7 +112,7 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
             <button type="button" aria-pressed={tab === 'manifest'} onClick={() => setTab('manifest')}>
               package.json
             </button>
-            {bundle.weatherJs && (
+            {bundle.companionJs && (
               <button type="button" aria-pressed={tab === 'js'} onClick={() => setTab('js')}>
                 index.js
               </button>
@@ -125,8 +129,8 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
               Copy package.json
             </button>
           )}
-          {tab === 'js' && bundle.weatherJs && (
-            <button type="button" className="btn" onClick={() => copy(bundle.weatherJs!, 'index.js')}>
+          {tab === 'js' && bundle.companionJs && (
+            <button type="button" className="btn" onClick={() => copy(bundle.companionJs!, 'index.js')}>
               Copy index.js
             </button>
           )}
@@ -141,7 +145,7 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
         <div className="modal-body">
           {tab === 'c' && <pre className="code-block">{bundle.mainC}</pre>}
           {tab === 'manifest' && <pre className="code-block">{bundle.packageJson}</pre>}
-          {tab === 'js' && <pre className="code-block">{bundle.weatherJs}</pre>}
+          {tab === 'js' && <pre className="code-block">{bundle.companionJs}</pre>}
           {tab === 'guide' && (
             <SetupGuide
               onDownload={() => void downloadZip()}
@@ -150,7 +154,8 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
               needsHealth={bundle.analysis.needsHealth}
               needsSeconds={bundle.analysis.needsSeconds}
               needsWeather={bundle.analysis.needsWeather}
-              onCopyWeatherJs={() => bundle.weatherJs && copy(bundle.weatherJs, 'index.js')}
+              needsCalendar={bundle.analysis.needsCalendar}
+              onCopyCompanionJs={() => bundle.companionJs && copy(bundle.companionJs, 'index.js')}
               uuid={project.uuid}
               name={project.name}
               spec={spec}
@@ -170,11 +175,12 @@ function SetupGuide({
   needsHealth,
   needsSeconds,
   needsWeather,
+  needsCalendar,
   uuid,
   name,
   spec,
   onCopyMainC,
-  onCopyWeatherJs,
+  onCopyCompanionJs,
 }: {
   onDownload: () => void;
   resources: ReturnType<typeof generateResourceInstructions>;
@@ -182,11 +188,12 @@ function SetupGuide({
   needsHealth: boolean;
   needsSeconds: boolean;
   needsWeather: boolean;
+  needsCalendar: boolean;
   uuid: string;
   name: string;
   spec: ReturnType<typeof platformSpec>;
   onCopyMainC: () => void;
-  onCopyWeatherJs: () => void;
+  onCopyCompanionJs: () => void;
 }) {
   const fonts = resources.filter((r) => r.kind === 'font');
   const images = resources.filter((r) => r.kind === 'bitmap');
@@ -308,17 +315,30 @@ function SetupGuide({
             arrives.
           </li>
         )}
+        {needsCalendar && (
+          <li>
+            Still in <strong>Settings → Message Keys</strong>, add each of these names too, spelled
+            exactly:{' '}
+            {CALENDAR_MESSAGE_KEYS.map((key, index) => (
+              <span key={key}>
+                {index > 0 && ', '}
+                <code>{key}</code>
+              </span>
+            ))}
+            .
+          </li>
+        )}
         {needsHealth && (
           <li>
             Still in <strong>Settings</strong>, tick the <strong>Health</strong> capability. Without
             it the step count always reads zero.
           </li>
         )}
-        {needsWeather && (
+        {(needsWeather || needsCalendar) && (
           <li>
             Still in <strong>Settings</strong>, tick the <strong>Configurable</strong> capability.
-            That is what makes the gear icon - where the API key gets entered after install - show
-            up next to the watchface in the phone app.
+            That is what makes the gear icon - where settings get entered after install - show up
+            next to the watchface in the phone app.
           </li>
         )}
       </ol>
@@ -434,13 +454,25 @@ function SetupGuide({
         </>
       )}
 
-      {needsWeather && (
+      {(needsWeather || needsCalendar) && (
         <>
-          <h3>Weather: add the phone companion</h3>
+          <h3>
+            {needsWeather && needsCalendar
+              ? 'Weather and calendar: add the phone companion'
+              : needsWeather
+                ? 'Weather: add the phone companion'
+                : 'Calendar: add the phone companion'}
+          </h3>
           <p>
-            The watch has no network of its own. Weather is fetched by JavaScript running on your
-            phone, which sends the numbers to the watchface over AppMessage. CloudPebble keeps that
-            JavaScript outside your C source, so it has to be added separately.
+            The watch has no network of its own.{' '}
+            {needsWeather && needsCalendar
+              ? 'Weather and the next calendar event are'
+              : needsWeather
+                ? 'Weather is'
+                : 'The next calendar event is'}{' '}
+            fetched by JavaScript running on your phone, which sends the readings to the watchface
+            over AppMessage. CloudPebble keeps that JavaScript outside your C source, so it has to
+            be added separately - one file covers both, if this face uses both.
           </p>
           <ol>
             <li>
@@ -449,23 +481,32 @@ function SetupGuide({
             </li>
             <li>
               Paste the generated companion into it.{' '}
-              <button type="button" className="btn btn-sm" onClick={onCopyWeatherJs}>
+              <button type="button" className="btn btn-sm" onClick={onCopyCompanionJs}>
                 Copy index.js
               </button>{' '}
-              It is also in the zip at <code>{WEATHER_JS_PATH}</code>.
+              It is also in the zip at <code>{COMPANION_JS_PATH}</code>.
             </li>
           </ol>
           <p>
-            No API key goes in this file, and none is set on the <strong>Project</strong> tab
+            No secrets go in this file, and none are set on the <strong>Project</strong> tab
             either. Once the watchface is installed, tap its gear icon in the Pebble phone app's
             watchapp list - the <strong>Configurable</strong> capability from step 2 is what puts
-            that icon there - and enter an OpenWeatherMap key on the settings page that opens. It
-            is saved on the phone, not in this project.
+            that icon there - and enter{' '}
+            {needsWeather && needsCalendar
+              ? 'an OpenWeatherMap key and a calendar ICS feed URL'
+              : needsWeather
+                ? 'an OpenWeatherMap key'
+                : 'a calendar ICS feed URL'}{' '}
+            on the settings page that opens. It is saved on the phone, not in this project.
           </p>
           <p>
-            Weather elements show their placeholder until a key is entered and the first reading
-            lands, which is normally a few seconds after that. The watch asks for a refresh on a
-            timer after.
+            {needsWeather && needsCalendar
+              ? 'Weather and calendar elements show'
+              : needsWeather
+                ? 'Weather elements show'
+                : 'Calendar elements show'}{' '}
+            their placeholder until settings are entered and the first reading lands, which is
+            normally a few seconds after that. The watch asks for a refresh on a timer after.
           </p>
         </>
       )}

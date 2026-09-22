@@ -30,7 +30,6 @@ project.images = [
   { id: 'img1', fileName: 'background.png', identifier: 'IMG_BACKGROUND', data: 'AA==', width: 60, height: 60 },
 ];
 project.options.vibeOnDisconnect = true;
-project.options.weatherApiKey = 'fixture-key';
 
 let x = 4;
 for (const kind of ELEMENT_KINDS) {
@@ -104,6 +103,63 @@ for (const [field, units] of [
 ] as const) {
   const extra = createElement({ paletteId: 'weather', existing: project.elements, spec, x: 4, y: 60 });
   Object.assign(extra, { field, units, degreeSymbol: false });
+  project.elements.push(extra);
+}
+
+// Every calendar field alone (two plain strings, one strftime call, and one
+// through the countdown helper), then all four together in each orientation -
+// the two branches that change how many %s placeholders and local buffers the
+// generator has to line up.
+for (const fields of [
+  ['title'],
+  ['time'],
+  ['countdown'],
+  ['location'],
+] as const) {
+  const extra = createElement({ paletteId: 'calendar', existing: project.elements, spec, x: 4, y: 70 });
+  Object.assign(extra, { fields: [...fields], orientation: 'vertical', prefix: '@ ', suffix: ' *' });
+  project.elements.push(extra);
+}
+{
+  const extra = createElement({ paletteId: 'calendar', existing: project.elements, spec, x: 4, y: 70 });
+  Object.assign(extra, {
+    fields: ['title', 'time', 'countdown', 'location'],
+    orientation: 'vertical',
+    prefix: '@ ',
+    suffix: ' *',
+  });
+  project.elements.push(extra);
+}
+// A separator with a quote, a percent sign, and a backslash - the characters
+// that need to survive both the C string literal and the printf format.
+{
+  const extra = createElement({ paletteId: 'calendar', existing: project.elements, spec, x: 4, y: 70 });
+  Object.assign(extra, {
+    fields: ['title', 'time', 'countdown', 'location'],
+    orientation: 'horizontal',
+    separator: ' "100%\\" ',
+    prefix: '@ ',
+    suffix: ' *',
+  });
+  project.elements.push(extra);
+}
+// A cleared separator: side by side with nothing between the fields at all.
+{
+  const extra = createElement({ paletteId: 'calendar', existing: project.elements, spec, x: 4, y: 70 });
+  Object.assign(extra, {
+    fields: ['title', 'location'],
+    orientation: 'horizontal',
+    separator: '',
+    prefix: '@ ',
+    suffix: ' *',
+  });
+  project.elements.push(extra);
+}
+// Every box unchecked: no %s at all, so the format string is a plain literal
+// and snprintf is called with no substitution args.
+{
+  const extra = createElement({ paletteId: 'calendar', existing: project.elements, spec, x: 4, y: 70 });
+  Object.assign(extra, { fields: [], orientation: 'vertical', prefix: '@ ', suffix: ' *' });
   project.elements.push(extra);
 }
 
