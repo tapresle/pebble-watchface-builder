@@ -2,7 +2,15 @@
 
 import { useState, type ReactNode } from 'react';
 import { useStore } from '../store';
-import { CONDITION_LABEL, WEATHER_CONDITIONS, type WeatherCondition } from '../lib/weather';
+import {
+  CONDITION_LABEL,
+  WEATHER_CONDITIONS,
+  cTenthsToDisplay,
+  displayToCelsius,
+  temperatureUnitLabel,
+  type WeatherCondition,
+  type WeatherUnits,
+} from '../lib/weather';
 import { PIXEL_GRID, type CanvasSettings } from './Canvas';
 
 /**
@@ -68,9 +76,16 @@ export function StageToolbar({
 }) {
   const store = useStore();
   const { preview } = store;
-  const hasWeather = store.project.elements.some((el) => el.type === 'weather');
+  const weatherElements = store.project.elements.filter((el) => el.type === 'weather');
+  const hasWeather = weatherElements.length > 0;
   const hasCalendar = store.project.elements.some((el) => el.type === 'calendar');
   const hasCompass = store.project.elements.some((el) => el.type === 'compass');
+  // Prefer the selected weather element's units, so editing the box after
+  // clicking an element matches what that element is set to; otherwise fall
+  // back to the first weather element on the canvas.
+  const selected = store.selected;
+  const selectedWeather = selected && selected.type === 'weather' ? selected : undefined;
+  const weatherUnits: WeatherUnits = selectedWeather?.units ?? weatherElements[0]?.units ?? 'metric';
   // Only changes how the boxes below are read and written. The preview itself
   // always keeps the hour on a 24 hour clock.
   const [clock12, setClock12] = useState(false);
@@ -229,12 +244,14 @@ export function StageToolbar({
           </span>
           <NumberChip
             label="Temp"
-            value={preview.weatherTempC}
-            min={-60}
-            max={60}
+            value={cTenthsToDisplay(preview.weatherTempC * 10, weatherUnits)}
+            min={cTenthsToDisplay(-600, weatherUnits)}
+            max={cTenthsToDisplay(600, weatherUnits)}
             width={52}
-            suffix="°C"
-            onChange={(weatherTempC) => store.setPreview({ weatherTempC: Math.round(weatherTempC) })}
+            suffix={`°${temperatureUnitLabel(weatherUnits)}`}
+            onChange={(displayValue) =>
+              store.setPreview({ weatherTempC: displayToCelsius(Math.round(displayValue), weatherUnits) })
+            }
           />
         </>
       )}
