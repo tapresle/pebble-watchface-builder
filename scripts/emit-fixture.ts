@@ -213,6 +213,20 @@ const slideshow = createElement({ paletteId: 'slideshow', existing: project.elem
 Object.assign(slideshow, { assetIds: ['img1', 'img2', 'img1'], intervalMinutes: 7, w: 40, h: 30 });
 project.elements.push(slideshow);
 
+// Outlines, one per way the text color reaches the draw: a constant, the
+// battery's picked color, and the Bluetooth color inside its hide-when-
+// connected branch. Both widths, both colors.
+for (const [paletteId, patch] of [
+  ['time', { outline: true, outlineColor: '#ffffff', outlineWidth: 2 }],
+  ['text', { outline: true, outlineColor: '#000000', outlineWidth: 1 }],
+  ['batteryText', { outline: true, outlineColor: '#000000', outlineWidth: 2 }],
+  ['bluetooth', { style: 'text', hideWhenConnected: true, outline: true, outlineColor: '#ffffff', outlineWidth: 1 }],
+] as const) {
+  const outlined = createElement({ paletteId, existing: project.elements, spec, x: 4, y: 230 });
+  Object.assign(outlined, patch);
+  project.elements.push(outlined);
+}
+
 const analysis = analyzeProject(project);
 const mode = process.argv[2] ?? 'c';
 process.stdout.write(mode === 'json' ? generatePackageJson(project, analysis) : generateC(project, analysis));

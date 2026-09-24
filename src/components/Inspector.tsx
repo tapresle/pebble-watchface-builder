@@ -29,6 +29,7 @@ import {
 } from '../lib/compass';
 import { WEATHER_FIELDS, isTemperatureField } from '../lib/weather';
 import { CALENDAR_FIELDS } from '../lib/calendar';
+import { OUTLINE_COLORS, OUTLINE_WIDTHS, contrastingOutline, drawsText } from '../lib/outline';
 import {
   MAX_SLIDESHOW_IMAGES,
   SLIDESHOW_MAX_INTERVAL,
@@ -185,6 +186,39 @@ function TextBoxControls({ el, patch }: { el: WatchElement; patch: (p: Patch) =>
         onChange={(align) => patch({ align } as Patch)}
       />
       <ColorField label="Color" value={el.color} onChange={(color) => patch({ color } as Patch)} />
+      {drawsText(el) && (
+        <>
+          <ToggleField
+            label="Outline"
+            checked={el.outline === true}
+            onChange={(outline) =>
+              patch({
+                outline,
+                // The first time it goes on, pick whichever of black and white
+                // stands out against the text.
+                ...(outline && !el.outlineColor && { outlineColor: contrastingOutline(el.color) }),
+              } as Patch)
+            }
+            hint="A black or white edge around the text, so it stays readable over an image."
+          />
+          {el.outline && (
+            <div className="field-row">
+              <Segmented
+                label="Outline color"
+                value={el.outlineColor ?? '#000000'}
+                options={OUTLINE_COLORS}
+                onChange={(outlineColor) => patch({ outlineColor } as Patch)}
+              />
+              <Segmented
+                label="Width"
+                value={String(el.outlineWidth === 2 ? 2 : 1)}
+                options={OUTLINE_WIDTHS.map((w) => ({ value: String(w), label: `${w} px` }))}
+                onChange={(width) => patch({ outlineWidth: Number(width) } as Patch)}
+              />
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 }

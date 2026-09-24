@@ -102,6 +102,15 @@ interface TextBoxBase extends ElementBase {
   align: TextAlign;
   color: Hex;
   font: FontRef;
+  /**
+   * Draw an outline around the text so it stays readable over an image. Off
+   * unless set, which is also how a document saved before outlines reads.
+   */
+  outline?: boolean;
+  /** Black or white. Kept while the outline is off, so turning it back on restores it. */
+  outlineColor?: Hex;
+  /** In pixels, 1 or 2. */
+  outlineWidth?: number;
 }
 
 export interface TimeElement extends TextBoxBase {

@@ -22,6 +22,7 @@ import { fontStyle } from '../lib/fontLoader';
 import { strftime, stripLeadingZero } from '../lib/strftime';
 import { elementBox, isAxisAlignedRect, lineDelta, polygonPoints } from '../lib/geometry';
 import { variantKey } from '../lib/imageConvert';
+import { outlineShadow, textOutline } from '../lib/outline';
 import { previewFrame } from '../lib/slideshow';
 
 interface Props {
@@ -166,6 +167,7 @@ function textBoxStyle(
   fonts: CustomFont[],
   color: string,
 ): CSSProperties {
+  const outline = textOutline(el);
   return {
     ...fontStyle(el.font, fonts),
     color,
@@ -175,6 +177,13 @@ function textBoxStyle(
     overflow: 'hidden',
     whiteSpace: 'pre-wrap',
     overflowWrap: 'break-word',
+    // The watch draws the outline's shifted copies past the box, so the clip
+    // is widened by the outline to keep it from being cut off at the edges.
+    ...(outline && {
+      textShadow: outlineShadow(outline),
+      overflow: 'clip',
+      overflowClipMargin: `${outline.width}px`,
+    }),
   };
 }
 
