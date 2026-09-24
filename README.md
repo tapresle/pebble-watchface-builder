@@ -58,6 +58,8 @@ reads as a category rather than a watch.
 - Slideshows of up to six PNGs across the whole face, each shown for 1 to 60 minutes in
   turn. Every image ships as its own bitmap resource, but the watch only ever holds the one
   on screen, freeing it before loading the next.
+- An optional black or white outline, 1 or 2 pixels wide, on anything that draws text, so
+  it stays readable over an image.
 - Complications that need hardware the target watch lacks are hidden from the palette -
   the heart rate element only appears for watches with the sensor, the compass only for
   watches with a magnetometer. The Pebble 2 has neither a magnetometer nor, on the SE
@@ -122,6 +124,7 @@ npm run verify   # typecheck + text and icon guards + generated-C check + produc
 | `src/lib/defaults.ts` | Element factories and the starter project. |
 | `src/lib/weather.ts` | Condition artwork, fields, units, and message keys, shared by the preview and the generated C. |
 | `src/lib/compass.ts` | Compass point naming and the refresh interval. |
+| `src/lib/outline.ts` | Which elements can have a text outline, and the offsets both the preview and the generated C draw it at. |
 | `src/lib/slideshow.ts` | The face-wide slideshow image cap, the interval bounds, and bitmap memory estimates. |
 | `src/codegen/` | `analyze.ts` works out which resources and services are needed; `generateC.ts` and `generateProject.ts` emit the output. |
 | `src/components/` | The editor UI: canvas, panels, inspector, export. |

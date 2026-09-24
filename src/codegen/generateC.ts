@@ -40,6 +40,7 @@ import { hexToRgb, inferTimeMode, luminance, platformSpec, type PlatformSpec } f
 import { isAxisAlignedRect } from '../lib/geometry';
 import { COMPASS_NAMES, COMPASS_REFRESH_MS } from '../lib/compass';
 import { compositingFor } from '../lib/imageConvert';
+import { textOutline } from '../lib/outline';
 import { clampInterval } from '../lib/slideshow';
 import {
   CONDITION_ICON,
@@ -104,7 +105,8 @@ type HelperName =
   | 'tenths'
   | 'conditionLabel'
   | 'compassPoint'
-  | 'calendarCountdown';
+  | 'calendarCountdown'
+  | 'outlineText';
 
 /** Emitted in this order, so a helper is always defined before one that uses it. */
 const HELPER_ORDER = [
@@ -120,6 +122,7 @@ const HELPER_ORDER = [
   'conditionLabel',
   'compassPoint',
   'calendarCountdown',
+  'outlineText',
 ] as const;
 
 const INDENT = '    ';
@@ -239,6 +242,12 @@ interface TextConsts {
   color: string;
   font: string;
   align: string;
+  /**
+   * Declares the outline's constants and returns their names, or null when the
+   * element has no outline. Deferred to the draw so a constant only exists
+   * where the code reads it.
+   */
+  outline: (() => { color: string; width: string }) | null;
 }
 
 function boxConsts(el: { x: number; y: number; w: number; h: number }, k: Consts) {
@@ -254,20 +263,46 @@ function boxConsts(el: { x: number; y: number; w: number; h: number }, k: Consts
  * The box, color, font, and alignment every text-drawing element shares. The
  * color is skipped for elements that pick one at draw time.
  */
-function textConsts(el: TextBox, ctx: Ctx, k: Consts, withColor = true): TextConsts {
+function textConsts(
+  el: TextBox & WatchElement,
+  ctx: Ctx,
+  k: Consts,
+  withColor = true,
+): TextConsts {
   const box = boxConsts(el, k);
+  const outline = textOutline(el);
   return {
     ...box,
     color: withColor ? k.color('COLOR', el.color) : '',
     font: k.raw('FONT', 'GFont', fontExpr(el.font, ctx)),
     align: k.raw('ALIGN', 'GTextAlignment', align(el.align)),
+    outline: outline
+      ? () => {
+          ctx.helpers.add('outlineText');
+          return {
+            color: k.color('OUTLINE_COLOR', outline.color),
+            width: k.int('OUTLINE_WIDTH', outline.width, 'pixels of outline around the text'),
+          };
+        }
+      : null,
   };
 }
 
-function drawText(textExpr: string, t: TextConsts, indent: string): string {
+/** Draws the text in `color`, with its outline first when it has one. */
+function drawText(textExpr: string, t: TextConsts, indent: string, color: string): string {
+  const rect = `GRect(${t.x}, ${t.y}, ${t.w}, ${t.h})`;
+  if (t.outline) {
+    const o = t.outline();
+    return (
+      `${indent}draw_outlined_text(ctx, ${textExpr}, ${t.font},\n` +
+      `${indent}                   ${rect},\n` +
+      `${indent}                   ${t.align}, ${color}, ${o.color}, ${o.width});`
+    );
+  }
   return (
+    `${indent}graphics_context_set_text_color(ctx, ${color});\n` +
     `${indent}graphics_draw_text(ctx, ${textExpr}, ${t.font},\n` +
-    `${indent}                   GRect(${t.x}, ${t.y}, ${t.w}, ${t.h}),\n` +
+    `${indent}                   ${rect},\n` +
     `${indent}                   GTextOverflowModeWordWrap, ${t.align}, NULL);`
   );
 }
@@ -320,15 +355,14 @@ function emitTime(el: TimeElement, ctx: Ctx, k: Consts, prefix: string): string 
     ctx.helpers.add('upper');
     body += `${i}text_to_upper(${buf});\n`;
   }
-  body += `${i}graphics_context_set_text_color(ctx, ${t.color});\n`;
-  return body + drawText(buf, t, i);
+  return body + drawText(buf, t, i, t.color);
 }
 
 function emitText(el: TextElement, ctx: Ctx, k: Consts): string {
   boxConsts(el, k);
   const text = k.str('TEXT', el.text);
   const t = textConsts(el, ctx, k);
-  return `${i}graphics_context_set_text_color(ctx, ${t.color});\n` + drawText(text, t, i);
+  return drawText(text, t, i, t.color);
 }
 
 function emitSteps(el: StepsElement, ctx: Ctx, k: Consts, prefix: string): string {
@@ -354,8 +388,7 @@ function emitSteps(el: StepsElement, ctx: Ctx, k: Consts, prefix: string): strin
   } else {
     body += `${i}snprintf(${buf}, sizeof(${buf}), ${format}, steps);\n`;
   }
-  body += `${i}graphics_context_set_text_color(ctx, ${t.color});\n`;
-  return body + drawText(buf, t, i);
+  return body + drawText(buf, t, i, t.color);
 }
 
 function emitHeartRate(el: HeartRateElement, ctx: Ctx, k: Consts, prefix: string): string {
@@ -381,8 +414,7 @@ function emitHeartRate(el: HeartRateElement, ctx: Ctx, k: Consts, prefix: string
   body += `${i}} else {\n`;
   body += `${i}  snprintf(${buf}, sizeof(${buf}), "%s", ${placeholder});\n`;
   body += `${i}}\n`;
-  body += `${i}graphics_context_set_text_color(ctx, ${t.color});\n`;
-  return body + drawText(buf, t, i);
+  return body + drawText(buf, t, i, t.color);
 }
 
 function emitWeather(el: WeatherElement, ctx: Ctx, k: Consts, prefix: string): string {
@@ -456,8 +488,7 @@ function emitWeather(el: WeatherElement, ctx: Ctx, k: Consts, prefix: string): s
   body += `${i}} else {\n`;
   body += `${i}  snprintf(${buf}, sizeof(${buf}), "%s", ${placeholder});\n`;
   body += `${i}}\n`;
-  body += `${i}graphics_context_set_text_color(ctx, ${t.color});\n`;
-  return body + drawText(buf, t, i);
+  return body + drawText(buf, t, i, t.color);
 }
 
 /**
@@ -524,8 +555,7 @@ function emitCalendar(el: CalendarElement, ctx: Ctx, k: Consts, prefix: string):
   body += `${i}} else {\n`;
   body += `${i}  snprintf(${buf}, sizeof(${buf}), "%s", ${placeholder});\n`;
   body += `${i}}\n`;
-  body += `${i}graphics_context_set_text_color(ctx, ${t.color});\n`;
-  return body + drawText(buf, t, i);
+  return body + drawText(buf, t, i, t.color);
 }
 
 function emitCompass(el: CompassElement, ctx: Ctx, k: Consts, prefix: string): string {
@@ -564,8 +594,7 @@ function emitCompass(el: CompassElement, ctx: Ctx, k: Consts, prefix: string): s
   body += `${i}} else {\n`;
   body += `${i}  snprintf(${buf}, sizeof(${buf}), "%s", ${placeholder});\n`;
   body += `${i}}\n`;
-  body += `${i}graphics_context_set_text_color(ctx, ${t.color});\n`;
-  return body + drawText(buf, t, i);
+  return body + drawText(buf, t, i, t.color);
 }
 
 function emitBatteryText(el: BatteryTextElement, ctx: Ctx, k: Consts, prefix: string): string {
@@ -581,8 +610,7 @@ function emitBatteryText(el: BatteryTextElement, ctx: Ctx, k: Consts, prefix: st
 
   let body = `${i}snprintf(${buf}, sizeof(${buf}), ${format}, s_battery_percent);\n`;
   body += `${batteryColorBlock('text_color', t.color, battery.charging, battery.low, battery.threshold, i)}\n`;
-  body += `${i}graphics_context_set_text_color(ctx, text_color);\n`;
-  return body + drawText(buf, t, i);
+  return body + drawText(buf, t, i, 'text_color');
 }
 
 function emitBatteryBar(el: BatteryBarElement, k: Consts, ctx: Ctx): string {
@@ -670,8 +698,7 @@ function emitBluetooth(el: BluetoothElement, ctx: Ctx, k: Consts): string {
     if (el.hideWhenConnected) body += `${i}if (!s_bt_connected) {\n`;
     body += `${inner}GColor bt_color = s_bt_connected ? ${colors.connected} : ${colors.disconnected};\n`;
     body += `${inner}const char *bt_text = s_bt_connected ? ${connectedText} : ${disconnectedText};\n`;
-    body += `${inner}graphics_context_set_text_color(ctx, bt_color);\n`;
-    body += drawText('bt_text', t, inner);
+    body += drawText('bt_text', t, inner, 'bt_color');
   } else if (el.style === 'dot') {
     const x = k.int('POS_X', el.x);
     const y = k.int('POS_Y', el.y);
@@ -1095,6 +1122,25 @@ function emitElement(el: WatchElement, prefix: string, ctx: Ctx): string {
 }
 
 const HELPER_SOURCE: Record<HelperName, string> = {
+  outlineText: `// Pebble has no text stroke, so an outline is the text drawn in the outline
+// color at every offset within the width, then once on top in its own color.
+// Past one pixel the far corners are left off, which keeps the outline round.
+static void draw_outlined_text(GContext *ctx, const char *text, GFont font, GRect box,
+                               GTextAlignment align, GColor color, GColor outline, int width) {
+  graphics_context_set_text_color(ctx, outline);
+  for (int dy = -width; dy <= width; dy++) {
+    for (int dx = -width; dx <= width; dx++) {
+      if ((dx == 0 && dy == 0) || (dx * dx) + (dy * dy) > (width * width) + width) {
+        continue;
+      }
+      GRect shifted = GRect(box.origin.x + dx, box.origin.y + dy, box.size.w, box.size.h);
+      graphics_draw_text(ctx, text, font, shifted, GTextOverflowModeWordWrap, align, NULL);
+    }
+  }
+  graphics_context_set_text_color(ctx, color);
+  graphics_draw_text(ctx, text, font, box, GTextOverflowModeWordWrap, align, NULL);
+}
+`,
   roundCap: `// Pebble's thick lines have square ends and there is no cap setting, so a
 // rounded end is a disc dropped on the endpoint. Below three pixels the disc
 // would not show, so it is skipped.
