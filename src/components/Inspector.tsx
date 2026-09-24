@@ -30,6 +30,13 @@ import {
 import { WEATHER_FIELDS, isTemperatureField } from '../lib/weather';
 import { CALENDAR_FIELDS } from '../lib/calendar';
 import {
+  MAX_SLIDESHOW_IMAGES,
+  SLIDESHOW_MAX_INTERVAL,
+  clampInterval,
+  slideshowAllowance,
+  slideshowImageCount,
+} from '../lib/slideshow';
+import {
   ColorField,
   Field,
   NumberField,
@@ -40,6 +47,9 @@ import {
   ToggleField,
 } from './fields';
 import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  CloseIcon,
   DuplicateIcon,
   EyeIcon,
   EyeOffIcon,
@@ -852,6 +862,131 @@ function TypeControls({ el, patch }: { el: WatchElement; patch: (p: Patch) => vo
             <strong className="callout-title">Upload this in CloudPebble</strong>
             The PNG has to be added as a <strong>Bitmap</strong> resource; the export panel lists the
             exact identifier to use.
+          </div>
+        </>
+      );
+    }
+
+    case 'slideshow': {
+      const { images, elements } = store.project;
+      const used = slideshowImageCount(elements);
+      const kept = slideshowAllowance(elements).get(el.id) ?? el.assetIds.length;
+      const full = used >= MAX_SLIDESHOW_IMAGES;
+      const setFrames = (assetIds: string[]) => patch({ assetIds } as Patch);
+      const move = (from: number, to: number) => {
+        const next = [...el.assetIds];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved!);
+        setFrames(next);
+      };
+      return (
+        <>
+          <div className="section-title">Slideshow</div>
+          {images.length === 0 ? (
+            <div className="warning-bar">
+              No images uploaded yet. Add PNGs in the <strong>Assets</strong> tab.
+            </div>
+          ) : (
+            <>
+              {kept < el.assetIds.length && (
+                <div className="warning-bar">
+                  The face has more than {MAX_SLIDESHOW_IMAGES} slideshow images, so{' '}
+                  {kept === 0
+                    ? 'all of these are'
+                    : el.assetIds.length - kept === 1
+                      ? 'the last one here is'
+                      : `the last ${el.assetIds.length - kept} here are`}{' '}
+                  left out of the preview and the export. Remove some to bring them back.
+                </div>
+              )}
+              {el.assetIds.length > 0 && (
+                <ol className="frame-list">
+                  {el.assetIds.map((id, index) => {
+                    const asset = images.find((a) => a.id === id);
+                    return (
+                      <li
+                        className="frame-row"
+                        key={`${id}-${index}`}
+                        data-dropped={index >= kept}
+                      >
+                        <span className="frame-index">{index + 1}</span>
+                        <span className="frame-thumb">
+                          {asset && <img src={`data:image/png;base64,${asset.data}`} alt="" />}
+                        </span>
+                        <span className="frame-name" title={asset?.fileName}>
+                          {asset?.fileName ?? 'Missing image'}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost btn-icon"
+                          disabled={index === 0}
+                          onClick={() => move(index, index - 1)}
+                          aria-label="Show earlier"
+                        >
+                          <ChevronUpIcon />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost btn-icon"
+                          disabled={index === el.assetIds.length - 1}
+                          onClick={() => move(index, index + 1)}
+                          aria-label="Show later"
+                        >
+                          <ChevronDownIcon />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost btn-icon btn-danger"
+                          onClick={() => setFrames(el.assetIds.filter((_, i) => i !== index))}
+                          aria-label="Remove from slideshow"
+                        >
+                          <CloseIcon />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+              <SelectField
+                label="Add image"
+                value=""
+                options={[
+                  { value: '', label: full ? 'Limit reached' : 'Choose an image' },
+                  ...(full ? [] : images.map((a) => ({ value: a.id, label: a.fileName }))),
+                ]}
+                onChange={(id) => id && setFrames([...el.assetIds, id])}
+                hint={
+                  `${used} of ${MAX_SLIDESHOW_IMAGES} slideshow images used across this face. ` +
+                  'Each one is its own resource, so the limit is shared by every slideshow.'
+                }
+              />
+            </>
+          )}
+          <NumberField
+            label="Minutes per image"
+            value={el.intervalMinutes}
+            min={1}
+            max={SLIDESHOW_MAX_INTERVAL}
+            onChange={(intervalMinutes) => patch({ intervalMinutes: clampInterval(intervalMinutes) } as Patch)}
+            hint="Images change on the clock and take turns in the order above, so 15 swaps on the hour, at quarter past, at half past, and at quarter to. The preview shows the first; the Slide buttons under the watch step through the rest."
+          />
+          {/* Round watches still draw into a square framebuffer, so the full
+              width and height cover the whole visible circle. */}
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() =>
+              patch({ x: 0, y: 0, w: store.spec.width, h: store.spec.height } as Patch)
+            }
+          >
+            Fill the screen ({store.spec.width}×{store.spec.height})
+          </button>
+          <div className="callout" style={{ marginTop: 12 }}>
+            <strong className="callout-title">Only one image in memory at a time</strong>
+            Every image is resized to this box, so they all show at the same size whatever size
+            they were uploaded at. Each is built into the watchface that way, and the watch loads just the
+            one on screen, freeing it when the next takes over. Each PNG still has to be added in
+            CloudPebble as a <strong>Bitmap</strong> resource; the export panel lists the identifiers.
           </div>
         </>
       );

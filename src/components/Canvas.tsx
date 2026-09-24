@@ -18,6 +18,7 @@ import {
 import { previewValues, useClock } from '../lib/previewValues';
 import { useCustomFonts, useSystemFontMetrics } from '../lib/fontLoader';
 import { useRenderedImages } from '../lib/imageConvert';
+import { slideshowAllowance } from '../lib/slideshow';
 import { ElementVisual } from './ElementVisual';
 import { ContextMenu, type MenuEntry } from './ContextMenu';
 import { CollectIcon, DuplicateIcon, GroupIcon, TrashIcon, UngroupIcon } from './icons';
@@ -74,9 +75,20 @@ export function Canvas({
   useClock(preview.useLiveTime);
   useCustomFonts(project.fonts);
   useSystemFontMetrics();
+  const frameLimits = slideshowAllowance(project.elements);
+  // Every slideshow frame is reduced up front, so stepping through them in the
+  // preview never waits on a conversion.
   const imageVariants = project.elements
-    .filter((el) => el.type === 'image' && el.visible)
-    .map((el) => ({ assetId: (el as { assetId: string }).assetId, size: { width: (el as { w: number }).w, height: (el as { h: number }).h } }));
+    .filter((el) => el.visible)
+    .flatMap((el) => {
+      if (el.type === 'image') return [{ assetId: el.assetId, size: { width: el.w, height: el.h } }];
+      if (el.type === 'slideshow') {
+        return el.assetIds
+          .slice(0, frameLimits.get(el.id))
+          .map((assetId) => ({ assetId, size: { width: el.w, height: el.h } }));
+      }
+      return [];
+    });
   const renderedImages = useRenderedImages(project.images, imageVariants, spec.colorMode);
   const values = previewValues(preview);
   const { width, height } = spec;
@@ -356,6 +368,7 @@ export function Canvas({
                     images={project.images}
                     values={values}
                     renderedImages={renderedImages}
+                    frameLimit={frameLimits.get(el.id)}
                   />
                 </div>
               );

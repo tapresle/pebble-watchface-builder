@@ -58,6 +58,11 @@ export interface PlatformSpec {
   heartRateOptional?: boolean;
   /** Whether the watch has a magnetometer to drive a compass. */
   hasCompass: boolean;
+  /**
+   * RAM an app gets for its code and heap together. A decoded bitmap lives in
+   * that heap, so this is what decides how big an image can safely be loaded.
+   */
+  appMemoryKB: number;
 }
 
 /* ------------------------------------------------------------------ *
@@ -105,6 +110,7 @@ export const PEBBLE_TIME_2: PlatformSpec = {
   shell: 'metal',
   hasHeartRate: true,
   hasCompass: true,
+  appMemoryKB: 128,
 };
 
 export const CORE_2_DUO: PlatformSpec = {
@@ -123,6 +129,7 @@ export const CORE_2_DUO: PlatformSpec = {
   shell: 'plastic',
   hasHeartRate: false,
   hasCompass: true,
+  appMemoryKB: 64,
 };
 
 export const PEBBLE_ROUND_2: PlatformSpec = {
@@ -141,6 +148,7 @@ export const PEBBLE_ROUND_2: PlatformSpec = {
   shell: 'metal',
   hasHeartRate: false,
   hasCompass: true,
+  appMemoryKB: 128,
 };
 
 /* ------------------------------------------------------------------ *
@@ -186,6 +194,7 @@ export const PEBBLE_CLASSIC: PlatformSpec = {
   shell: 'plastic',
   hasHeartRate: false,
   hasCompass: true,
+  appMemoryKB: 24,
 };
 
 /*
@@ -214,6 +223,7 @@ export const PEBBLE_TIME: PlatformSpec = {
   shell: 'plastic',
   hasHeartRate: false,
   hasCompass: true,
+  appMemoryKB: 64,
 };
 
 /*
@@ -244,6 +254,7 @@ export const PEBBLE_TIME_ROUND: PlatformSpec = {
   shell: 'metal',
   hasHeartRate: false,
   hasCompass: true,
+  appMemoryKB: 64,
 };
 
 /*
@@ -269,6 +280,7 @@ export const PEBBLE_2: PlatformSpec = {
   hasHeartRate: true,
   heartRateOptional: true,
   hasCompass: false,
+  appMemoryKB: 64,
 };
 
 export const PLATFORMS: Record<PlatformId, PlatformSpec> = {

@@ -41,7 +41,7 @@ reads as a category rather than a watch.
   only the circle inside it.
 - Elements: digital time/date (any `strftime` format), analog dial, static text, step
   count, heart rate, battery as text / bar / ring, Bluetooth indicator, weather, calendar,
-  compass, polygons, circles, lines, and PNG images.
+  compass, polygons, circles, lines, PNG images, and slideshows.
 - Weather as ten readings - temperature, feels-like, today's high and low, chance of rain,
   humidity, wind, condition text, place name, and a drawn condition icon - with
   Celsius/Fahrenheit and km/h/mph per element. The watch has no weather radio, so the
@@ -55,6 +55,9 @@ reads as a category rather than a watch.
   the phone, for entering the weather API key and the calendar URL after install.
 - Compass heading as a named point (N, NE, E and so on, at 4, 8, or 16 points), as a
   bearing in degrees, or both.
+- Slideshows of up to six PNGs across the whole face, each shown for 1 to 60 minutes in
+  turn. Every image ships as its own bitmap resource, but the watch only ever holds the one
+  on screen, freeing it before loading the next.
 - Complications that need hardware the target watch lacks are hidden from the palette -
   the heart rate element only appears for watches with the sensor, the compass only for
   watches with a magnetometer. The Pebble 2 has neither a magnetometer nor, on the SE
@@ -119,6 +122,7 @@ npm run verify   # typecheck + text and icon guards + generated-C check + produc
 | `src/lib/defaults.ts` | Element factories and the starter project. |
 | `src/lib/weather.ts` | Condition artwork, fields, units, and message keys, shared by the preview and the generated C. |
 | `src/lib/compass.ts` | Compass point naming and the refresh interval. |
+| `src/lib/slideshow.ts` | The face-wide slideshow image cap, the interval bounds, and bitmap memory estimates. |
 | `src/codegen/` | `analyze.ts` works out which resources and services are needed; `generateC.ts` and `generateProject.ts` emit the output. |
 | `src/components/` | The editor UI: canvas, panels, inspector, export. |
 | `scripts/` | The generated-C compile check and its stub SDK header, plus the text and icon guards. |

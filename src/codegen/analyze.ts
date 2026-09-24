@@ -8,6 +8,12 @@
 
 import type { CustomFont, ImageAsset, WatchfaceProject } from '../types';
 import { formatNeedsSeconds, platformSpec } from '../lib/platform';
+import {
+  MAX_SLIDESHOW_IMAGES,
+  SLIDESHOW_STORAGE_WARN_BYTES,
+  bitmapBytes,
+  slideshowAllowance,
+} from '../lib/slideshow';
 
 export interface UsedFont {
   font: CustomFont;
@@ -25,11 +31,19 @@ export interface UsedImage {
   height: number;
   resourceId: string;
   varName: string;
+  /**
+   * Whether an image element draws it, which loads it once at startup and
+   * keeps it. A slideshow frame alone is only a resource: the slideshow loads
+   * it when its turn comes and frees it when the next one does.
+   */
+  preload: boolean;
 }
 
 export interface ProjectAnalysis {
   fonts: UsedFont[];
   images: UsedImage[];
+  /** Each visible slideshow's frames, in order, after the face-wide cap. */
+  slideshowFrames: Map<string, UsedImage[]>;
   needsBattery: boolean;
   needsBluetooth: boolean;
   needsHealth: boolean;
@@ -54,7 +68,29 @@ export function analyzeProject(project: WatchfaceProject): ProjectAnalysis {
   const spec = platformSpec(project.platform);
   const fontMap = new Map<string, UsedFont>();
   const imageMap = new Map<string, UsedImage>();
+  const slideshowFrames = new Map<string, UsedImage[]>();
+  const allowance = slideshowAllowance(project.elements);
   const warnings: string[] = [];
+
+  // graphics_draw_bitmap_in_rect neither scales nor stretches, so each size an
+  // image is drawn at needs its own bitmap resource.
+  const useImage = (asset: ImageAsset, w: number, h: number, preload: boolean): UsedImage => {
+    const key = `${asset.id}@${w}x${h}`;
+    let used = imageMap.get(key);
+    if (!used) {
+      used = {
+        asset,
+        width: w,
+        height: h,
+        resourceId: asset.identifier,
+        varName: `s_bmp_${cIdent(asset.identifier)}`,
+        preload,
+      };
+      imageMap.set(key, used);
+    }
+    if (preload) used.preload = true;
+    return used;
+  };
 
   let needsBattery = false;
   let needsBluetooth = project.options.vibeOnDisconnect;
@@ -146,23 +182,59 @@ export function analyzeProject(project: WatchfaceProject): ProjectAnalysis {
           warnings.push(`"${el.name}" has no image assigned - it will be skipped in the export.`);
           break;
         }
-        // graphics_draw_bitmap_in_rect neither scales nor stretches, so each
-        // size an image is drawn at needs its own bitmap resource.
-        const key = `${asset.id}@${el.w}x${el.h}`;
-        if (!imageMap.has(key)) {
-          imageMap.set(key, {
-            asset,
-            width: el.w,
-            height: el.h,
-            resourceId: asset.identifier,
-            varName: `s_bmp_${cIdent(asset.identifier)}`,
-          });
+        useImage(asset, el.w, el.h, true);
+        break;
+      }
+      case 'slideshow': {
+        const kept = allowance.get(el.id) ?? 0;
+        const over = kept < el.assetIds.length;
+        if (over) {
+          warnings.push(
+            `"${el.name}" goes past the limit of ${MAX_SLIDESHOW_IMAGES} slideshow images for the ` +
+              `whole face, so ` +
+              (kept === 0
+                ? 'none of its images are exported and it will be skipped.'
+                : `only its first ${kept === 1 ? 'one is' : `${kept} are`} exported.`),
+          );
+        }
+        const frames = el.assetIds
+          .slice(0, kept)
+          .map((id) => project.images.find((a) => a.id === id))
+          .filter((a): a is ImageAsset => a !== undefined)
+          .map((asset) => useImage(asset, el.w, el.h, false));
+        if (!frames.length) {
+          if (!(over && kept === 0)) {
+            warnings.push(`"${el.name}" has no images - it will be skipped in the export.`);
+          }
+          break;
+        }
+        slideshowFrames.set(el.id, frames);
+        // One frame is decoded at a time, but it has to share the app's memory
+        // with everything else, and a PNG needs room to decode into as well.
+        const bytes = bitmapBytes(el.w, el.h, spec.colorMode);
+        if (bytes > (spec.appMemoryKB * 1024) / 2) {
+          warnings.push(
+            `"${el.name}" is ${el.w}x${el.h}, which takes about ${Math.round(bytes / 1024)} KB of ` +
+              `the ${spec.appMemoryKB} KB the ${spec.name} gives an app each time an image loads. ` +
+              `It may fail to load; a smaller box is safer.`,
+          );
         }
         break;
       }
       default:
         break;
     }
+  }
+
+  const slideshowBytes = [...new Set([...slideshowFrames.values()].flat())].reduce(
+    (n, img) => n + bitmapBytes(img.width, img.height, spec.colorMode),
+    0,
+  );
+  if (slideshowBytes > SLIDESHOW_STORAGE_WARN_BYTES) {
+    warnings.push(
+      `The slideshow images come to about ${Math.round(slideshowBytes / 1024)} KB once decoded, ` +
+        `which may not fit in the app's resource space. If the build fails, use fewer or smaller images.`,
+    );
   }
 
   // Only disambiguate identifiers when an image really is used at more than one
@@ -180,6 +252,7 @@ export function analyzeProject(project: WatchfaceProject): ProjectAnalysis {
   return {
     fonts: [...fontMap.values()],
     images,
+    slideshowFrames,
     needsBattery,
     needsBluetooth,
     needsHealth,

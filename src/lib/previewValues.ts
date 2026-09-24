@@ -41,6 +41,8 @@ export interface PreviewValues {
   /** Compass bearing in degrees clockwise from north. */
   compassHeading: number;
   calendar: PreviewCalendar;
+  /** How many images every slideshow is stepped past its first. */
+  slideshowStep: number;
 }
 
 /** Ticks once a second, but only while the preview is following the real clock. */
@@ -69,6 +71,7 @@ export function previewValues(preview: PreviewState): PreviewValues {
     steps: preview.steps,
     heartRate: preview.heartRate,
     compassHeading: preview.compassHeading,
+    slideshowStep: preview.slideshowStep,
     calendar: {
       hasEvent: preview.calendarHasEvent,
       title: preview.calendarTitle,

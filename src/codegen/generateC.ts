@@ -27,6 +27,7 @@ import type {
   ImageElement,
   LineElement,
   PolygonElement,
+  SlideshowElement,
   StepsElement,
   TextAlign,
   TextElement,
@@ -39,6 +40,7 @@ import { hexToRgb, inferTimeMode, luminance, platformSpec, type PlatformSpec } f
 import { isAxisAlignedRect } from '../lib/geometry';
 import { COMPASS_NAMES, COMPASS_REFRESH_MS } from '../lib/compass';
 import { compositingFor } from '../lib/imageConvert';
+import { clampInterval } from '../lib/slideshow';
 import {
   CONDITION_ICON,
   CONDITION_LABEL,
@@ -84,6 +86,10 @@ interface Ctx {
   /** Declarations for the text buffers each element needs. */
   buffers: { name: string; size: number; owner: string }[];
   helpers: Set<HelperName>;
+  /** File-scope declarations an element needs beyond a text buffer. */
+  globals: string[];
+  /** Statements deinit runs to free what an element allocated while drawing. */
+  cleanup: string[];
 }
 
 type HelperName =
@@ -847,6 +853,80 @@ function emitImage(el: ImageElement, ctx: Ctx, k: Consts): string {
   return body;
 }
 
+function emitSlideshow(el: SlideshowElement, ctx: Ctx, k: Consts, prefix: string): string {
+  const frames = ctx.analysis.slideshowFrames.get(el.id);
+  if (!frames?.length) return '';
+
+  const base = `s_${prefix.toLowerCase()}`;
+  const list = `${base}_frames`;
+  const bitmap = `${base}_bitmap`;
+  const shown = `${base}_shown`;
+  const modes = frames.map((f) =>
+    compositingFor(f.asset, ctx.spec.colorMode) === 'set' ? 'GCompOpSet' : 'GCompOpAssign',
+  );
+  const mixed = new Set(modes).size > 1;
+
+  ctx.globals.push(`// ${el.name}: the images it cycles through, in order. Only the one on screen`);
+  ctx.globals.push('// is ever loaded; the next one replaces it when its turn comes.');
+  ctx.globals.push(`static const uint32_t ${list}[] = {`);
+  for (const f of frames) ctx.globals.push(`  RESOURCE_ID_${f.resourceId},`);
+  ctx.globals.push('};');
+  if (mixed) {
+    ctx.globals.push(`static const GCompOp ${base}_modes[] = {`);
+    for (const m of modes) ctx.globals.push(`  ${m},`);
+    ctx.globals.push('};');
+  }
+  ctx.globals.push(`static GBitmap *${bitmap};`);
+  ctx.globals.push(`static int ${shown} = -1;`);
+  ctx.globals.push('');
+  ctx.cleanup.push(`  if (${bitmap} != NULL) {`);
+  ctx.cleanup.push(`    gbitmap_destroy(${bitmap});`);
+  ctx.cleanup.push('  }');
+
+  const x = k.int('POS_X', el.x);
+  const y = k.int('POS_Y', el.y);
+  k.note('each bitmap resource is built at exactly this size, so changing these');
+  k.note('crops the images rather than scaling them');
+  const w = k.int('WIDTH', el.w);
+  const h = k.int('HEIGHT', el.h);
+  const interval = k.int('INTERVAL', clampInterval(el.intervalMinutes), 'minutes each image stays up, at least 1');
+
+  // Minutes into the year rather than into the day, so an interval that does
+  // not divide a day evenly keeps its rhythm past midnight.
+  let body = `${i}const int count = (int)(sizeof(${list}) / sizeof(${list}[0]));
+`;
+  body += `${i}const int minutes = (s_now.tm_yday * 24 * 60) + (s_now.tm_hour * 60) + s_now.tm_min;
+`;
+  body += `${i}const int frame = (minutes / ${interval}) % count;
+`;
+  body += `${i}if (frame != ${shown}) {
+`;
+  body += `${i}  // Free the old image before loading the next, so only one is ever in memory.
+`;
+  body += `${i}  if (${bitmap} != NULL) {
+`;
+  body += `${i}    gbitmap_destroy(${bitmap});
+`;
+  body += `${i}  }
+`;
+  body += `${i}  ${bitmap} = gbitmap_create_with_resource(${list}[frame]);
+`;
+  body += `${i}  ${shown} = frame;
+`;
+  body += `${i}}
+`;
+  body += `${i}if (${bitmap} != NULL) {
+`;
+  body += `${i}  graphics_context_set_compositing_mode(ctx, ${mixed ? `${base}_modes[frame]` : modes[0]});
+`;
+  body += `${i}  graphics_draw_bitmap_in_rect(ctx, ${bitmap}, GRect(${x}, ${y}, ${w}, ${h}));
+`;
+  body += `${i}  graphics_context_set_compositing_mode(ctx, GCompOpAssign);
+`;
+  body += `${i}}`;
+  return body;
+}
+
 function emitAnalog(el: AnalogElement, ctx: Ctx, k: Consts): string {
   const x = k.int('POS_X', el.x);
   const y = k.int('POS_Y', el.y);
@@ -961,6 +1041,8 @@ function elementLabel(el: WatchElement): string {
     // inspector does rather than labelling it "undefined".
     case 'time':
       return el.mode === 'time' || el.mode === 'date' ? el.mode : inferTimeMode(el.format);
+    case 'slideshow':
+      return `slideshow - every ${clampInterval(el.intervalMinutes)} min`;
     case 'polygon':
       return isAxisAlignedRect(el.sides, el.rotation) ? 'rectangle' : 'polygon';
     case 'bluetooth':
@@ -1002,6 +1084,7 @@ function emitElement(el: WatchElement, prefix: string, ctx: Ctx): string {
     case 'circle': body = emitCircle(el, k); break;
     case 'line': body = emitLine(el, ctx, k); break;
     case 'image': body = emitImage(el, ctx, k); break;
+    case 'slideshow': body = emitSlideshow(el, ctx, k, prefix); break;
     case 'analog': body = emitAnalog(el, ctx, k); break;
   }
 
@@ -1283,7 +1366,17 @@ function calendarGlobals(): string[] {
 
 export function generateC(project: WatchfaceProject, analysis: ProjectAnalysis): string {
   const spec = platformSpec(project.platform);
-  const ctx: Ctx = { analysis, spec, color: makeColor(spec), buffers: [], helpers: new Set() };
+  const ctx: Ctx = {
+    analysis,
+    spec,
+    color: makeColor(spec),
+    buffers: [],
+    helpers: new Set(),
+    globals: [],
+    cleanup: [],
+  };
+  // Images only a slideshow draws are loaded one at a time by the slideshow.
+  const preloaded = analysis.images.filter((img) => img.preload);
 
   // Element bodies are generated first so we know which buffers and helpers the
   // file needs to declare above the update procedure.
@@ -1340,11 +1433,12 @@ export function generateC(project: WatchfaceProject, analysis: ProjectAnalysis):
     for (const f of analysis.fonts) L.push(`static GFont ${f.varName};`);
     L.push('');
   }
-  if (analysis.images.length) {
+  if (preloaded.length) {
     L.push('// Bitmap resources.');
-    for (const img of analysis.images) L.push(`static GBitmap *${img.varName};`);
+    for (const img of preloaded) L.push(`static GBitmap *${img.varName};`);
     L.push('');
   }
+  L.push(...ctx.globals);
   if (ctx.buffers.length) {
     L.push('// Text buffers, one per text-drawing element. snprintf truncates rather than');
     L.push('// overflowing, so a format string edited longer is safe - it just gets cut off.');
@@ -1546,8 +1640,8 @@ export function generateC(project: WatchfaceProject, analysis: ProjectAnalysis):
     }
     L.push('');
   }
-  if (analysis.images.length) {
-    for (const img of analysis.images) {
+  if (preloaded.length) {
+    for (const img of preloaded) {
       L.push(`  ${img.varName} = gbitmap_create_with_resource(RESOURCE_ID_${img.resourceId});`);
     }
     L.push('');
@@ -1611,7 +1705,8 @@ export function generateC(project: WatchfaceProject, analysis: ProjectAnalysis):
     L.push('  health_service_events_unsubscribe();');
     L.push('#endif');
   }
-  for (const img of analysis.images) L.push(`  gbitmap_destroy(${img.varName});`);
+  for (const img of preloaded) L.push(`  gbitmap_destroy(${img.varName});`);
+  L.push(...ctx.cleanup);
   for (const f of analysis.fonts) L.push(`  fonts_unload_custom_font(${f.varName});`);
   L.push('  window_destroy(s_window);');
   L.push('}');

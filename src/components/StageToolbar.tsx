@@ -12,6 +12,7 @@ import {
   type WeatherUnits,
 } from '../lib/weather';
 import { PIXEL_GRID, type CanvasSettings } from './Canvas';
+import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 
 /**
  * A labelled number box.
@@ -80,6 +81,9 @@ export function StageToolbar({
   const hasWeather = weatherElements.length > 0;
   const hasCalendar = store.project.elements.some((el) => el.type === 'calendar');
   const hasCompass = store.project.elements.some((el) => el.type === 'compass');
+  const hasSlideshow = store.project.elements.some(
+    (el) => el.type === 'slideshow' && el.assetIds.length > 1,
+  );
   // Prefer the selected weather element's units, so editing the box after
   // clicking an element matches what that element is set to; otherwise fall
   // back to the first weather element on the canvas.
@@ -315,6 +319,38 @@ export function StageToolbar({
             store.setPreview({ compassHeading: Math.round(compassHeading) })
           }
         />
+      )}
+
+      {hasSlideshow && (
+        <span className="chip">
+          Slide
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost btn-icon"
+            onClick={() => store.setPreview({ slideshowStep: preview.slideshowStep - 1 })}
+            aria-label="Previous slideshow image"
+          >
+            <ChevronLeftIcon />
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost btn-icon"
+            onClick={() => store.setPreview({ slideshowStep: preview.slideshowStep + 1 })}
+            aria-label="Next slideshow image"
+          >
+            <ChevronRightIcon />
+          </button>
+          {preview.slideshowStep !== 0 && (
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => store.setPreview({ slideshowStep: 0 })}
+              title="Back to the first image"
+            >
+              First
+            </button>
+          )}
+        </span>
       )}
 
       <span style={{ flex: 1 }} />

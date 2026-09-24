@@ -2,6 +2,11 @@
 
 import type { ElementType, PlatformId, WatchElement, WatchfaceProject } from '../types';
 import { CALENDAR_DEFAULT_SEPARATOR } from './calendar';
+import {
+  MAX_SLIDESHOW_IMAGES,
+  SLIDESHOW_DEFAULT_INTERVAL,
+  slideshowImageCount,
+} from './slideshow';
 import { elementBox, visibleWidthAt } from './geometry';
 import { platformSpec, type PlatformSpec } from './platform';
 import { uid, uuidv4 } from './utils';
@@ -62,12 +67,13 @@ export type PaletteId =
   | 'polygon'
   | 'circle'
   | 'line'
-  | 'image';
+  | 'image'
+  | 'slideshow';
 
 const PALETTE_IDS = new Set<string>([
   'time', 'date', 'analog', 'text', 'batteryText', 'batteryBar', 'batteryRing',
   'steps', 'heartRate', 'bluetooth', 'weather', 'calendar', 'compass', 'polygon',
-  'circle', 'line', 'image',
+  'circle', 'line', 'image', 'slideshow',
 ]);
 
 export const isPaletteId = (value: string): value is PaletteId => PALETTE_IDS.has(value);
@@ -106,6 +112,7 @@ export const ELEMENT_KINDS: ElementKind[] = [
   { paletteId: 'circle', type: 'circle', label: 'Circle', hint: 'Filled disc or ring', group: 'Shapes & art' },
   { paletteId: 'line', type: 'line', label: 'Line', hint: 'Straight rule or divider', group: 'Shapes & art' },
   { paletteId: 'image', type: 'image', label: 'Image', hint: 'A PNG you upload', group: 'Shapes & art' },
+  { paletteId: 'slideshow', type: 'slideshow', label: 'Slideshow', hint: 'PNGs that take turns', group: 'Shapes & art' },
 ];
 
 const nextName = (existing: WatchElement[], base: string): string => {
@@ -258,6 +265,17 @@ export function createElement({
       return {
         ...base, type: 'image', name: nextName(existing, 'Image'),
         assetId: defaultImageAssetId ?? '', w: 60, h: 60,
+      };
+    case 'slideshow':
+      return {
+        ...base, type: 'slideshow', name: nextName(existing, 'Slideshow'),
+        // Starts with the first image when the face-wide cap has room for it,
+        // so a new slideshow shows something without going over.
+        assetIds:
+          defaultImageAssetId && slideshowImageCount(existing) < MAX_SLIDESHOW_IMAGES
+            ? [defaultImageAssetId]
+            : [],
+        intervalMinutes: SLIDESHOW_DEFAULT_INTERVAL, w: 60, h: 60,
       };
     case 'analog':
       return {

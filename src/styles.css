@@ -1359,6 +1359,61 @@ a {
   margin-bottom: 8px;
 }
 
+/* A slideshow's images in the order they are shown. */
+.frame-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.frame-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  padding: 4px 4px 4px 8px;
+}
+.frame-row[data-dropped='true'] {
+  opacity: 0.45;
+}
+.frame-index {
+  width: 12px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.frame-thumb {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: repeating-conic-gradient(var(--checker) 0% 25%, var(--checker-alt) 0% 50%) 50% /
+    8px 8px;
+  overflow: hidden;
+}
+.frame-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+}
+.frame-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.frame-row .btn-icon {
+  min-width: 24px;
+  padding: 3px;
+}
+
 /* Raised off the panel like .empty above. */
 .dropzone {
   background: var(--bg-input);
