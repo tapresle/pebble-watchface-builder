@@ -28,6 +28,9 @@ project.fonts = [
 ];
 project.images = [
   { id: 'img1', fileName: 'background.png', identifier: 'IMG_BACKGROUND', data: 'AA==', width: 60, height: 60 },
+  // Transparent, so on a color watch it draws with GCompOpSet next to img1's
+  // GCompOpAssign, which is what makes a slideshow emit its per-frame modes.
+  { id: 'img2', fileName: 'cutout.png', identifier: 'IMG_CUTOUT', data: 'AA==', width: 60, height: 60, hasAlpha: true },
 ];
 project.options.vibeOnDisconnect = true;
 
@@ -202,6 +205,13 @@ project.elements.push(bigPolygon);
 const emptyCircle = createElement({ paletteId: 'circle', existing: project.elements, spec, x: 4, y: 210 });
 Object.assign(emptyCircle, { fill: false, strokeWidth: 0 });
 project.elements.push(emptyCircle);
+
+// The default slideshow shares img1 at 60x60 with the image element, so that
+// resource is both preloaded and loaded on demand. This one mixes compositing
+// modes and repeats a frame, at a size nothing else uses.
+const slideshow = createElement({ paletteId: 'slideshow', existing: project.elements, spec, x: 4, y: 220 });
+Object.assign(slideshow, { assetIds: ['img1', 'img2', 'img1'], intervalMinutes: 7, w: 40, h: 30 });
+project.elements.push(slideshow);
 
 const analysis = analyzeProject(project);
 const mode = process.argv[2] ?? 'c';

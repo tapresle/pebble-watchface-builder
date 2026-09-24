@@ -76,6 +76,7 @@ export type ElementType =
   | 'circle'
   | 'line'
   | 'image'
+  | 'slideshow'
   | 'analog';
 
 interface ElementBase {
@@ -319,6 +320,23 @@ export interface ImageElement extends ElementBase {
   h: number;
 }
 
+/**
+ * Several images shown one at a time in the same box, advancing on a fixed
+ * interval. Each image ships as its own bitmap resource, but only the one on
+ * screen is loaded, so the memory cost is one image however many there are.
+ * The count is capped across every slideshow in the face; see
+ * MAX_SLIDESHOW_IMAGES.
+ */
+export interface SlideshowElement extends ElementBase {
+  type: 'slideshow';
+  /** Image asset ids, in the order they are shown. The same one may repeat. */
+  assetIds: string[];
+  /** Minutes each image stays up before the next one replaces it. */
+  intervalMinutes: number;
+  w: number;
+  h: number;
+}
+
 export interface AnalogElement extends ElementBase {
   type: 'analog';
   /** Diameter of the dial; (x, y) is its top-left corner. */
@@ -367,6 +385,7 @@ export type WatchElement =
   | CircleElement
   | LineElement
   | ImageElement
+  | SlideshowElement
   | AnalogElement;
 
 export interface WatchfaceProject {
@@ -427,4 +446,6 @@ export interface PreviewState {
   calendarLocation: string;
   /** Minutes from the preview clock to the stand-in event's start. */
   calendarMinutesUntil: number;
+  /** How many images every slideshow is stepped past its first. */
+  slideshowStep: number;
 }

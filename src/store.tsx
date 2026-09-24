@@ -227,6 +227,7 @@ const defaultPreview = (): PreviewState => {
     calendarTitle: 'Team standup',
     calendarLocation: 'Video Call',
     calendarMinutesUntil: 45,
+    slideshowStep: 0,
   };
 };
 
@@ -534,7 +535,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...p,
           images: p.images.map((img) => (img.id === id ? { ...img, ...patch } : img)),
         })),
-      removeImage: (id) => update((p) => ({ ...p, images: p.images.filter((i) => i.id !== id) })),
+      // A slideshow has no use for a frame whose image is gone, and unlike an
+      // image element it has no "None" to fall back to, so the frame goes too.
+      removeImage: (id) =>
+        update((p) => ({
+          ...p,
+          images: p.images.filter((i) => i.id !== id),
+          elements: p.elements.map((el) =>
+            el.type === 'slideshow' && el.assetIds.includes(id)
+              ? { ...el, assetIds: el.assetIds.filter((a) => a !== id) }
+              : el,
+          ),
+        })),
 
       undo,
       redo,

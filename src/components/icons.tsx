@@ -175,6 +175,30 @@ export const GithubIcon = () => (
  * were both a compass rose. Typed as a complete record of PaletteId, so adding
  * a palette entry without an icon fails the build rather than rendering a gap.
  */
+export const ChevronLeftIcon = () => (
+  <Glyph>
+    <path d="M10 3.5 5.5 8l4.5 4.5" />
+  </Glyph>
+);
+
+export const ChevronRightIcon = () => (
+  <Glyph>
+    <path d="M6 3.5 10.5 8 6 12.5" />
+  </Glyph>
+);
+
+export const ChevronUpIcon = () => (
+  <Glyph>
+    <path d="M3.5 10 8 5.5l4.5 4.5" />
+  </Glyph>
+);
+
+export const ChevronDownIcon = () => (
+  <Glyph>
+    <path d="M3.5 6 8 10.5 12.5 6" />
+  </Glyph>
+);
+
 export const PALETTE_ICON: Record<PaletteId, JSX.Element> = {
   // Four digit cells and a colon, which reads as a clock face full of numbers
   // where real numerals would be a couple of pixels wide and illegible.
@@ -295,6 +319,15 @@ export const PALETTE_ICON: Record<PaletteId, JSX.Element> = {
       <rect x="1.6" y="3" width="12.8" height="10" rx="1.6" />
       <circle cx="5.6" cy="6.4" r="1.2" />
       <path d="M1.9 11.2l3.5-3 3 2.4 2.3-1.9 3.2 2.7" />
+    </Glyph>
+  ),
+  // The `image` picture, shrunk forward so a second frame shows behind it.
+  slideshow: (
+    <Glyph>
+      <path d="M4.4 3.4V2.9a1.3 1.3 0 0 1 1.3-1.3h7.4a1.3 1.3 0 0 1 1.3 1.3v6.4a1.3 1.3 0 0 1-1.3 1.3h-.5" />
+      <rect x="1.6" y="4.8" width="10.4" height="8.6" rx="1.4" />
+      <circle cx="4.9" cy="7.8" r="1" />
+      <path d="M1.9 12l2.9-2.5 2.5 2 1.9-1.6 2.5 2.1" />
     </Glyph>
   ),
 };

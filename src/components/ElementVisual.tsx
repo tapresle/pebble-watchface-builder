@@ -22,6 +22,7 @@ import { fontStyle } from '../lib/fontLoader';
 import { strftime, stripLeadingZero } from '../lib/strftime';
 import { elementBox, isAxisAlignedRect, lineDelta, polygonPoints } from '../lib/geometry';
 import { variantKey } from '../lib/imageConvert';
+import { previewFrame } from '../lib/slideshow';
 
 interface Props {
   el: WatchElement;
@@ -30,6 +31,11 @@ interface Props {
   values: PreviewValues;
   /** Rendered image variants, keyed by variantKey(assetId, size). */
   renderedImages: Map<string, string>;
+  /**
+   * How many of a slideshow's images survive the face-wide cap. The rest are
+   * left out of the export, so the preview leaves them out too.
+   */
+  frameLimit?: number;
 }
 
 const groupThousands = (n: number): string => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -172,7 +178,43 @@ function textBoxStyle(
   };
 }
 
-export function ElementVisual({ el, fonts, images, values, renderedImages }: Props) {
+/** A bitmap as the watch draws it, or a marker where one is missing. */
+function bitmapVisual(
+  asset: ImageAsset | undefined,
+  w: number,
+  h: number,
+  renderedImages: Map<string, string>,
+  missing: string,
+) {
+  if (!asset) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          border: '1px dashed #ff5c72',
+          color: '#ff5c72',
+          fontSize: 8,
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        {missing}
+      </div>
+    );
+  }
+  return (
+    <img
+      src={`data:image/png;base64,${renderedImages.get(variantKey(asset.id, { width: w, height: h })) ?? asset.data}`}
+      alt=""
+      width={w}
+      height={h}
+      style={{ width: '100%', height: '100%', imageRendering: 'pixelated', display: 'block' }}
+    />
+  );
+}
+
+export function ElementVisual({ el, fonts, images, values, renderedImages, frameLimit }: Props) {
   const box = elementBox(el);
 
   switch (el.type) {
@@ -421,34 +463,16 @@ export function ElementVisual({ el, fonts, images, values, renderedImages }: Pro
       );
     }
 
-    case 'image': {
-      const asset = images.find((a) => a.id === el.assetId);
-      if (!asset) {
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              border: '1px dashed #ff5c72',
-              color: '#ff5c72',
-              fontSize: 8,
-              display: 'grid',
-              placeItems: 'center',
-            }}
-          >
-            no image
-          </div>
-        );
-      }
-      return (
-        <img
-          src={`data:image/png;base64,${renderedImages.get(variantKey(asset.id, { width: el.w, height: el.h })) ?? asset.data}`}
-          alt=""
-          width={el.w}
-          height={el.h}
-          style={{ width: '100%', height: '100%', imageRendering: 'pixelated', display: 'block' }}
-        />
-      );
+    case 'image':
+      return bitmapVisual(images.find((a) => a.id === el.assetId), el.w, el.h, renderedImages, 'no image');
+
+    case 'slideshow': {
+      const frames = el.assetIds
+        .slice(0, frameLimit ?? el.assetIds.length)
+        .map((id) => images.find((a) => a.id === id))
+        .filter((a): a is ImageAsset => a !== undefined);
+      const asset = frames[previewFrame(frames.length, values.slideshowStep)];
+      return bitmapVisual(asset, el.w, el.h, renderedImages, 'no images');
     }
 
     case 'analog': {
